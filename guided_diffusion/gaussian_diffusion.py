@@ -98,7 +98,7 @@ class LossType(enum.Enum):
         return self == LossType.KL or self == LossType.RESCALED_KL
 
 
-class GaussianDiffusion:
+class GaussianDiffusion:  # initialize in function create_model_and_diffusion
     """
     Utilities for training and sampling diffusion models.
 
@@ -533,6 +533,203 @@ class GaussianDiffusion:
                 )
                 yield out
                 img = out["sample"]
+
+#################################
+
+    def ddcm_sample(        # called in function ddcm_sample
+        self,
+        model,
+        x,
+        t,                  # t: current timestep
+        clip_denoised=True,
+        denoised_fn=None,
+        cond_fn=None,
+        model_kwargs=None,
+        hq_img=None,       # high quality image
+        codebook=None
+    ):
+        """
+        Sample x_{t-1} from the model at the given timestep.
+
+        :param model: the model to sample from.
+        :param x: the current tensor at x_{t-1}.
+        :param t: the value of t, starting at 0 for the first diffusion step.
+        :param clip_denoised: if True, clip the x_start prediction to [-1, 1].
+        :param denoised_fn: if not None, a function which applies to the
+            x_start prediction before it is used to sample.
+        :param cond_fn: if not None, this is a gradient function that acts
+                        similarly to the model.
+        :param model_kwargs: if not None, a dict of extra keyword arguments to
+            pass to the model. This can be used for conditioning.
+        :return: a dict containing the following keys:
+                 - 'sample': a random sample from the model.
+                 - 'pred_xstart': a prediction of x_0.
+        """
+        out = self.p_mean_variance(
+            model,
+            x,
+            t,
+            clip_denoised=clip_denoised,
+            denoised_fn=denoised_fn,
+            model_kwargs=model_kwargs,
+        )
+
+        # Noise added to the mean ------> need to change to sample from codebook for each timestep t
+        # noise = th.randn_like(x)
+
+        # Sample noise from codebook
+        # print('codebook.shape:', codebook.shape)
+        # print('hq_img.shape:', hq_img.shape)
+        # print('out[\"pred_xstart\"].shape:', out["pred_xstart"].shape)
+
+        # print("codebook dtype:", codebook.dtype)
+        # print("hq_img dtype:", hq_img.dtype)
+        # print("out['pred_xstart'] dtype:", out["pred_xstart"].dtype)
+
+        codebook = codebook.to(out["pred_xstart"].dtype)
+        sims = th.einsum('kuwv,buwv->kb', codebook, hq_img - out["pred_xstart"])
+        idxs = sims.argmax(0)
+        noise = codebook[idxs]
+
+        # no noise when t == 0
+        nonzero_mask = (
+            (t != 0).float().view(-1, *([1] * (len(x.shape) - 1)))
+        ) 
+
+        if cond_fn is not None:
+            out["mean"] = self.condition_mean(
+                cond_fn, out, x, t, model_kwargs=model_kwargs
+            )
+        sample = out["mean"] + nonzero_mask * th.exp(0.5 * out["log_variance"]) * noise
+        return {"sample": sample, "pred_xstart": out["pred_xstart"]}
+
+    def ddcm_sample_loop(      # main function (sample_fn) called in inference phase
+        self,
+        model,
+        shape,
+        noise=None,
+        clip_denoised=True,
+        denoised_fn=None,
+        cond_fn=None,
+        model_kwargs=None,
+        device=None,
+        progress=False,
+    ):
+        """
+        Generate samples from the model.
+
+        :param model: the model module.
+        :param shape: the shape of the samples, (N, C, H, W).
+        :param noise: if specified, the noise from the encoder to sample.
+                      Should be of the same shape as `shape`.
+        :param clip_denoised: if True, clip x_start predictions to [-1, 1].
+        :param denoised_fn: if not None, a function which applies to the
+            x_start prediction before it is used to sample.
+        :param cond_fn: if not None, this is a gradient function that acts
+                        similarly to the model.
+        :param model_kwargs: if not None, a dict of extra keyword arguments to
+            pass to the model. This can be used for conditioning.
+        :param device: if specified, the device to create the samples on.
+                       If not specified, use a model parameter's device.
+        :param progress: if True, show a tqdm progress bar.
+        :return: a non-differentiable batch of samples.
+        """
+        final = None
+        for sample in self.ddcm_sample_loop_progressive(
+            model,
+            shape,
+            noise=noise,
+            clip_denoised=clip_denoised,
+            denoised_fn=denoised_fn,
+            cond_fn=cond_fn,
+            model_kwargs=model_kwargs,
+            device=device,
+            progress=progress,
+        ):
+            final = sample
+        return final["sample"]
+
+    def ddcm_sample_loop_progressive(
+        self,
+        model,
+        shape,
+        noise=None,
+        clip_denoised=True,
+        denoised_fn=None,
+        cond_fn=None,
+        model_kwargs=None,
+        device=None,
+        progress=False,
+    ):
+        """
+        Generate samples from the model and yield intermediate samples from
+        each timestep of diffusion.
+
+        Arguments are the same as p_sample_loop().
+        Returns a generator over dicts, where each dict is the return value of
+        p_sample().
+        """
+        if device is None:
+            device = next(model.parameters()).device
+        assert isinstance(shape, (tuple, list))
+
+        # Input image
+        def load_hq_image(path):
+            from PIL import Image
+            pil_image = Image.open(path)
+            pil_image.load()
+            pil_image = pil_image.convert("RGB")
+            arr = np.array(pil_image)
+            arr = arr.astype(np.float32) / 127.5 - 1
+            arr = np.transpose(arr, [2, 0, 1])
+            return th.tensor(arr, device=device).unsqueeze(0).to(device)
+        
+        # hq_img = load_hq_image("/mnt/HDD2/phudoan/my_stuff/guided-diffusion/hq_img/CelebDataProcessed/Jennifer Lopez/8.jpg")
+        hq_img = load_hq_image("/mnt/HDD2/phudoan/my_stuff/guided-diffusion/hq_img/CelebDataProcessed/Leonardo DiCaprio/20.jpg")
+
+        # Generate codebook
+        print('Generating codebook...')
+        K = 64; img_size = 256; T = 1000
+        np.random.seed(100)
+        codebooks = np.random.randn(T + 1, K, 3, img_size, img_size).astype(np.float16)
+        np.save('/mnt/HDD2/phudoan/my_stuff/guided-diffusion/models/codebooks.npy', codebooks)
+        # codebooks = np.load('/mnt/HDD2/phudoan/my_stuff/guided-diffusion/models/codebooks.npy')
+
+        print('Codebook generated!')
+
+        # Initial noise
+        if noise is not None:
+            img = noise
+        else:
+            img = th.randn(*shape, device=device)
+
+        # Inference steps
+        indices = list(range(self.num_timesteps))[::-1]
+
+        if progress:
+            from tqdm.auto import tqdm
+            indices = tqdm(indices)
+
+        for i in indices:
+            # Create timestep tensor
+            t = th.tensor([i] * shape[0], device=device)
+            with th.no_grad():
+                out = self.ddcm_sample(
+                    model,
+                    img,
+                    t,
+                    clip_denoised=clip_denoised,
+                    denoised_fn=denoised_fn,
+                    cond_fn=cond_fn,
+                    model_kwargs=model_kwargs,
+                    hq_img=hq_img,
+                    codebook=th.from_numpy(codebooks[i]).to(device)  # Sample from codebook
+                )
+                yield out
+                img = out["sample"]
+
+
+################################
 
     def ddim_sample(
         self,

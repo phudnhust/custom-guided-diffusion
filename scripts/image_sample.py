@@ -19,6 +19,8 @@ from guided_diffusion.script_util import (
     args_to_dict,
 )
 
+from matplotlib import pyplot as plt
+from datetime import datetime
 
 def main():
     args = create_argparser().parse_args()
@@ -48,9 +50,10 @@ def main():
                 low=0, high=NUM_CLASSES, size=(args.batch_size,), device=dist_util.dev()
             )
             model_kwargs["y"] = classes
-        sample_fn = (
-            diffusion.p_sample_loop if not args.use_ddim else diffusion.ddim_sample_loop
-        )
+        # sample_fn = (
+        #     diffusion.p_sample_loop if not args.use_ddim else diffusion.ddim_sample_loop
+        # )
+        sample_fn = diffusion.ddcm_sample_loop
         sample = sample_fn(
             model,
             (args.batch_size, 3, args.image_size, args.image_size),
@@ -79,12 +82,22 @@ def main():
         label_arr = label_arr[: args.num_samples]
     if dist.get_rank() == 0:
         shape_str = "x".join([str(x) for x in arr.shape])
-        out_path = os.path.join(logger.get_dir(), f"samples_{shape_str}.npz")
+        # out_path = os.path.join(logger.get_dir(), f"samples_{shape_str}.npz")
+        out_filename =  f"samples_{shape_str}"
+        out_path = os.path.join("/mnt/HDD2/phudoan/my_stuff/guided-diffusion/npz_output", out_filename + ".npz")
         logger.log(f"saving to {out_path}")
         if args.class_cond:
             np.savez(out_path, arr, label_arr)
         else:
             np.savez(out_path, arr)
+        
+        # output to png
+        data = np.load(out_path)
+        images = data['arr_0'][0]
+        plt.imshow(images)
+        plt.axis('off')  # Remove axes for a cleaner image
+        plt.savefig(f"/mnt/HDD2/phudoan/my_stuff/guided-diffusion/png_output/" + out_filename + datetime.now().strftime("_date_%Y%m%d_time_%H%M") + ".png", bbox_inches='tight', pad_inches=0)
+        plt.close()  # Close the figure to avoid overlapping
 
     dist.barrier()
     logger.log("sampling complete")
@@ -98,7 +111,7 @@ def create_argparser():
         use_ddim=False,
         model_path="",
     )
-    defaults.update(model_and_diffusion_defaults())
+    defaults.update(model_and_diffusion_defaults()) 
     parser = argparse.ArgumentParser()
     add_dict_to_argparser(parser, defaults)
     return parser
