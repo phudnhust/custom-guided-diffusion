@@ -546,7 +546,8 @@ class GaussianDiffusion:  # initialize in function create_model_and_diffusion
         cond_fn=None,
         model_kwargs=None,
         hq_img=None,       # high quality image
-        codebook=None
+        codebook=None,
+        compressed_info=None
     ):
         """
         Sample x_{t-1} from the model at the given timestep.
@@ -587,9 +588,14 @@ class GaussianDiffusion:  # initialize in function create_model_and_diffusion
         # print("out['pred_xstart'] dtype:", out["pred_xstart"].dtype)
 
         codebook = codebook.to(out["pred_xstart"].dtype)
-        sims = th.einsum('kuwv,buwv->kb', codebook, hq_img - out["pred_xstart"])
-        idxs = sims.argmax(0)
-        noise = codebook[idxs]
+
+        if compressed_info is None:
+            sims = th.einsum('kuwv,buwv->kb', codebook, hq_img - out["pred_xstart"])
+            idxs = sims.argmax(0)
+            noise = codebook[idxs]
+        else:
+            idxs = compressed_info[t.item()]
+            noise = codebook[idxs]
 
         # no noise when t == 0
         nonzero_mask = (
@@ -601,7 +607,7 @@ class GaussianDiffusion:  # initialize in function create_model_and_diffusion
                 cond_fn, out, x, t, model_kwargs=model_kwargs
             )
         sample = out["mean"] + nonzero_mask * th.exp(0.5 * out["log_variance"]) * noise
-        return {"sample": sample, "pred_xstart": out["pred_xstart"]}
+        return {"sample": sample, "pred_xstart": out["pred_xstart"],  "codebook_index": idxs}
 
     def ddcm_sample_loop(      # main function (sample_fn) called in inference phase
         self,
@@ -684,35 +690,57 @@ class GaussianDiffusion:  # initialize in function create_model_and_diffusion
             arr = np.transpose(arr, [2, 0, 1])
             return th.tensor(arr, device=device).unsqueeze(0).to(device)
         
-        # hq_img = load_hq_image("/mnt/HDD2/phudoan/my_stuff/guided-diffusion/hq_img/CelebDataProcessed/Jennifer Lopez/8.jpg")
-        hq_img = load_hq_image("/mnt/HDD2/phudoan/my_stuff/guided-diffusion/hq_img/CelebDataProcessed/Leonardo DiCaprio/20.jpg")
+        # hq_img = load_hq_image("/mnt/HDD2/phudh/custom-guided-diffusion/hq_img/CelebDataProcessed/Jennifer Lopez/8.jpg")
+        hq_img = load_hq_image("/mnt/HDD2/phudh/custom-guided-diffusion/hq_img/CelebDataProcessed/Leonardo DiCaprio/20.jpg")
 
         # Generate codebook
         print('Generating codebook...')
-        K = 64; img_size = 256; T = 1000
-        np.random.seed(100)
-        codebooks = np.random.randn(T + 1, K, 3, img_size, img_size).astype(np.float16)
-        np.save('/mnt/HDD2/phudoan/my_stuff/guided-diffusion/models/codebooks.npy', codebooks)
-        # codebooks = np.load('/mnt/HDD2/phudoan/my_stuff/guided-diffusion/models/codebooks.npy')
+        K = 32; img_size = 256; T = 1000
+
+        # --------- Using numpy ---------
+        # np.random.seed(100)
+        # codebooks = np.random.randn(T + 1, K, 3, img_size, img_size).astype(np.float16)
+
+        # SHOULD USE: -------- Using torch ---------
+        ## th.manual_seed(100)
+        codebooks = th.randn((T + 1, K, 3, img_size, img_size), dtype=th.float16, device='cpu')
+        codebooks = codebooks.numpy()
+
+        np.save('/mnt/HDD2/phudh/custom-guided-diffusion/models/codebooks_K_32.npy', codebooks)
+
+        codebooks = np.load('/mnt/HDD2/phudh/custom-guided-diffusion/models/codebooks_K_32.npy')
+        print('codebooks.shape:', codebooks.shape)
 
         print('Codebook generated!')
 
-        # Initial noise
-        if noise is not None:
-            img = noise
-        else:
-            img = th.randn(*shape, device=device)
+        # # Initial noise
+        # if noise is not None:
+        #     img = noise
+        # else:
+        #     img = th.randn(*shape, device=device)
 
         # Inference steps
         indices = list(range(self.num_timesteps))[::-1]
+
+        # Initial noise: sampled from codebook
+        img = th.from_numpy(codebooks[self.num_timesteps][0]).to(device).type(th.float32).unsqueeze(0)  # Sample from codebook
+        print('img.shape:', img.shape)
+        print('shape:', shape)
 
         if progress:
             from tqdm.auto import tqdm
             indices = tqdm(indices)
 
+        compressed_info = None
+        # to reconstruct the image from the compresed info, comment the next line to compress the image
+        # compressed_info = np.load('/mnt/HDD2/phudh/custom-guided-diffusion/compressed_info/compressed_representation_date_20250430_time_1643.npy')
+
+        compressed_representation = np.ones(self.num_timesteps).astype(np.int16) * (-1)     # to save the codebook indices of this sampling process
+
         for i in indices:
             # Create timestep tensor
             t = th.tensor([i] * shape[0], device=device)
+            # print('t:', t); print('t.shape:', t.shape)
             with th.no_grad():
                 out = self.ddcm_sample(
                     model,
@@ -723,10 +751,16 @@ class GaussianDiffusion:  # initialize in function create_model_and_diffusion
                     cond_fn=cond_fn,
                     model_kwargs=model_kwargs,
                     hq_img=hq_img,
-                    codebook=th.from_numpy(codebooks[i]).to(device)  # Sample from codebook
+                    codebook=th.from_numpy(codebooks[i]).to(device),  # Sample from codebook,
+                    compressed_info=compressed_info
                 )
                 yield out
                 img = out["sample"]
+                compressed_representation[i] = out["codebook_index"].cpu().numpy().item() if type(out["codebook_index"]) is th.Tensor else out["codebook_index"]
+
+        print('compressed_representation:', compressed_representation)
+        from datetime import datetime
+        np.save('/mnt/HDD2/phudh/custom-guided-diffusion/compressed_info/compressed_representation' + datetime.now().strftime("_date_%Y%m%d_time_%H%M")  + '.npy', compressed_representation)
 
 
 ################################

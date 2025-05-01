@@ -84,7 +84,7 @@ def main():
         shape_str = "x".join([str(x) for x in arr.shape])
         # out_path = os.path.join(logger.get_dir(), f"samples_{shape_str}.npz")
         out_filename =  f"samples_{shape_str}"
-        out_path = os.path.join("/mnt/HDD2/phudoan/my_stuff/guided-diffusion/npz_output", out_filename + ".npz")
+        out_path = os.path.join("/mnt/HDD2/phudh/custom-guided-diffusion/npz_output", out_filename + ".npz")
         logger.log(f"saving to {out_path}")
         if args.class_cond:
             np.savez(out_path, arr, label_arr)
@@ -96,7 +96,7 @@ def main():
         images = data['arr_0'][0]
         plt.imshow(images)
         plt.axis('off')  # Remove axes for a cleaner image
-        plt.savefig(f"/mnt/HDD2/phudoan/my_stuff/guided-diffusion/png_output/" + out_filename + datetime.now().strftime("_date_%Y%m%d_time_%H%M") + ".png", bbox_inches='tight', pad_inches=0)
+        plt.savefig(f"/mnt/HDD2/phudh/custom-guided-diffusion/png_output/" + out_filename + datetime.now().strftime("_date_%Y%m%d_time_%H%M") + ".png", bbox_inches='tight', pad_inches=0)
         plt.close()  # Close the figure to avoid overlapping
 
     dist.barrier()
