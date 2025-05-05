@@ -9,6 +9,7 @@ import os
 import numpy as np
 import torch as th
 import torch.distributed as dist
+import time
 
 from guided_diffusion import dist_util, logger
 from guided_diffusion.script_util import (
@@ -23,6 +24,7 @@ from matplotlib import pyplot as plt
 from datetime import datetime
 
 def main():
+    start_time = time.perf_counter()
     args = create_argparser().parse_args()
 
     dist_util.setup_dist()
@@ -43,6 +45,10 @@ def main():
         model.convert_to_fp16()
     model.eval()
 
+    end_time = time.perf_counter()
+    elapsed_time = end_time - start_time
+    print(f"Loading model time: {elapsed_time:.6f} seconds")
+
     logger.log("sampling...")
     all_images = []
     all_labels = []
@@ -50,21 +56,26 @@ def main():
     repo_folder_path = "/mnt/HDD2/phudoan/my_stuff/custom-guided-diffusion/"
     
     # Generate codebook
+    start_time = time.perf_counter()
     print('Loading codebook...')
-    K = 32; img_size = 256; T = 1000
+    K = 64; img_size = 256; T = 1000
 
 
     # SHOULD USE: -------- Using torch ---------
     ## th.manual_seed(100)
-    # codebooks = th.randn((T + 1, K, 3, img_size, img_size), dtype=th.float16, device='cpu')
-    # codebooks = codebooks.numpy()
-    # np.save(repo_folder_path + 'codebooks_K_32.npy', codebooks)
+    # _codebooks = th.randn((T + 1, K, 3, img_size, img_size), dtype=th.float16, device='cpu')
+    # _codebooks = _codebooks.numpy()
+    # np.save(repo_folder_path + 'models/codebooks_K_64.npy', _codebooks)
 
-    _codebooks = np.load(repo_folder_path + 'models/codebooks_K_32.npy')
+    _codebooks = np.load(repo_folder_path + 'models/codebooks_K_64.npy')
     print('_codebooks.shape:', _codebooks.shape)
 
     print('Codebook generated!')
+    end_time = time.perf_counter()
+    elapsed_time = end_time - start_time
+    print(f"Loading codebooks time: {elapsed_time:.6f} seconds")
     
+    start_time = time.perf_counter()
     while len(all_images) * args.batch_size < args.num_samples:
         model_kwargs = {}
         if args.class_cond:
@@ -75,21 +86,16 @@ def main():
         # sample_fn = (
         #     diffusion.p_sample_loop if not args.use_ddim else diffusion.ddim_sample_loop
         # )
-        # sample_fn = diffusion.ddcm_sample_loop
-        # sample = sample_fn(
-        #     model,
-        #     (args.batch_size, 3, args.image_size, args.image_size),
-        #     clip_denoised=args.clip_denoised,
-        #     model_kwargs=model_kwargs,
-        #     codebooks=_codebooks
-        # )
-        print('hehe')
-        sample = diffusion.ddcm_sample_loop(
+        sample_fn = diffusion.ddcm_sample_loop
+        sample = sample_fn(
             model,
             (args.batch_size, 3, args.image_size, args.image_size),
             clip_denoised=args.clip_denoised,
             model_kwargs=model_kwargs,
-            codebooks=_codebooks
+            codebooks=_codebooks,
+            # hq_img_path="/mnt/HDD2/phudoan/my_stuff/custom-guided-diffusion/hq_img/academic_gown/000.jpg",
+            hq_img_path="/mnt/HDD2/phudoan/my_stuff/custom-guided-diffusion/hq_img/academic_gown/004.jpg",
+            noise_blend=False
         )
 
         sample = ((sample + 1) * 127.5).clamp(0, 255).to(th.uint8)
@@ -133,6 +139,10 @@ def main():
 
     dist.barrier()
     logger.log("sampling complete")
+
+    end_time = time.perf_counter()
+    elapsed_time = end_time - start_time
+    print(f"Inference time: {elapsed_time:.6f} seconds")
 
 
 def create_argparser():

@@ -547,7 +547,8 @@ class GaussianDiffusion:  # initialize in function create_model_and_diffusion
         model_kwargs=None,
         hq_img=None,       # high quality image
         codebook=None,
-        compressed_info=None
+        compressed_info=None,
+        noise_blend=False  # if True, blend the noise with the codebook
     ):
         """
         Sample x_{t-1} from the model at the given timestep.
@@ -597,6 +598,45 @@ class GaussianDiffusion:  # initialize in function create_model_and_diffusion
             idxs = compressed_info[t.item()]
             noise = codebook[idxs]
 
+        # print("codebook shape:", codebook.shape)
+        # print("noise shape:", noise.shape)
+        # print("hq_img shape:", hq_img.shape)
+        # print("out['pred_xstart'] shape:", out["pred_xstart"].shape)
+
+        def cosine_top_blend_4d(anchor, codebook, top=10, temperature=0.1):
+            """
+            anchor: (1, C, H, W)
+            codebook: (K, C, H, W)
+            Returns:
+                refined: (1, C, H, W)
+            """
+            import torch.nn.functional as F
+
+            # Flatten spatial dims
+            K, C, H, W = codebook.shape
+            anchor_flat = anchor.view(1, -1)                # (1, C*H*W)
+            codebook_flat = codebook.view(K, -1)            # (K, C*H*W)
+
+            # Normalize
+            anchor_norm = F.normalize(anchor_flat, dim=1)   # (1, D)
+            codebook_norm = F.normalize(codebook_flat, dim=1)  # (K, D)
+
+            # Cosine similarity
+            sim = th.matmul(codebook_norm, anchor_norm.T).squeeze(1)  # (K,)
+
+            # Top-5 selection
+            top_scores, top_idx = th.topk(sim, k=top)
+            weights = F.softmax(top_scores / temperature, dim=0)        # (5,)
+
+            # Weighted blend
+            top_vectors = codebook[top_idx]                            # (5, C, H, W)
+            refined = th.sum(weights[:, None, None, None] * top_vectors, dim=0, keepdim=True)  # (1, C, H, W)
+
+            return refined
+
+        if noise_blend:
+            noise = cosine_top_blend_4d(noise, codebook, top=10)
+
         # no noise when t == 0
         nonzero_mask = (
             (t != 0).float().view(-1, *([1] * (len(x.shape) - 1)))
@@ -620,7 +660,9 @@ class GaussianDiffusion:  # initialize in function create_model_and_diffusion
         model_kwargs=None,
         device=None,
         progress=False,
-        codebooks=None
+        codebooks=None,
+        hq_img_path=None,         # high quality image path
+        noise_blend=False         # if True, blend the noise with the codebook
     ):
         """
         Generate samples from the model.
@@ -653,7 +695,9 @@ class GaussianDiffusion:  # initialize in function create_model_and_diffusion
             model_kwargs=model_kwargs,
             device=device,
             progress=progress,
-            codebooks=codebooks
+            codebooks=codebooks,
+            hq_img_path=hq_img_path,
+            noise_blend=noise_blend
         ):
             final = sample
         return final["sample"]
@@ -669,7 +713,9 @@ class GaussianDiffusion:  # initialize in function create_model_and_diffusion
         model_kwargs=None,
         device=None,
         progress=False,
-        codebooks=None            # codebooks is already load from image_sample.py
+        codebooks=None,            # codebooks is already load from image_sample.py
+        hq_img_path=None,         # high quality image path
+        noise_blend=False         # if True, blend the noise with the codebook
     ):
         """
         Generate samples from the model and yield intermediate samples from
@@ -696,7 +742,8 @@ class GaussianDiffusion:  # initialize in function create_model_and_diffusion
         
         # hq_img = load_hq_image("/mnt/HDD2/phudh/custom-guided-diffusion/hq_img/CelebDataProcessed/Jennifer Lopez/8.jpg")
         # hq_img = load_hq_image("/mnt/HDD2/phudh/custom-guided-diffusion/hq_img/CelebDataProcessed/Leonardo DiCaprio/20.jpg")
-        hq_img = load_hq_image("/mnt/HDD2/phudoan/my_stuff/custom-guided-diffusion/hq_img/academic_gown/000.jpg")
+        
+        hq_img = load_hq_image(hq_img_path)
 
         # Inference steps
         indices = list(range(self.num_timesteps))[::-1]
@@ -731,7 +778,8 @@ class GaussianDiffusion:  # initialize in function create_model_and_diffusion
                     model_kwargs=model_kwargs,
                     hq_img=hq_img,
                     codebook=th.from_numpy(codebooks[i]).to(device),  # Sample from codebook,
-                    compressed_info=compressed_info
+                    compressed_info=compressed_info,
+                    noise_blend=noise_blend
                 )
                 yield out
                 img = out["sample"]
