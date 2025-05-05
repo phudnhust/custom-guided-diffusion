@@ -1,3 +1,18 @@
+# NOTE
+* After cloning the first time, run this command to install the guided-diffusion package:
+```
+pip install -e .
+```
+* Change the local repo path (scripts/image_sample.py  -------> line 50)
+```
+repo_folder_path = "/mnt/HDD2/phudoan/my_stuff/custom-guided-diffusion/"
+```
+
+* To change GPU (guided_diffusion/dist_util.py --------> line 28)
+```
+os.environ["CUDA_VISIBLE_DEVICES"] = "1"
+```
+
 # guided-diffusion
 
 This is the codebase for [Diffusion Models Beat GANS on Image Synthesis](http://arxiv.org/abs/2105.05233).

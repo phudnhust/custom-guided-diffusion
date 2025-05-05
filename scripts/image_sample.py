@@ -35,6 +35,7 @@ def main():
     model.load_state_dict(
         dist_util.load_state_dict(args.model_path, map_location="cpu")
     )
+    print(th.cuda.get_device_properties(dist_util.dev()))
     model.to(dist_util.dev())
     print('device:', dist_util.dev())
 
@@ -45,24 +46,22 @@ def main():
     logger.log("sampling...")
     all_images = []
     all_labels = []
+
+    repo_folder_path = "/mnt/HDD2/phudoan/my_stuff/custom-guided-diffusion/"
     
     # Generate codebook
-    print('Generating codebook...')
+    print('Loading codebook...')
     K = 32; img_size = 256; T = 1000
 
-    # --------- Using numpy ---------
-    # np.random.seed(100)
-    # codebooks = np.random.randn(T + 1, K, 3, img_size, img_size).astype(np.float16)
 
     # SHOULD USE: -------- Using torch ---------
     ## th.manual_seed(100)
-    codebooks = th.randn((T + 1, K, 3, img_size, img_size), dtype=th.float16, device='cpu')
-    codebooks = codebooks.numpy()
+    # codebooks = th.randn((T + 1, K, 3, img_size, img_size), dtype=th.float16, device='cpu')
+    # codebooks = codebooks.numpy()
+    # np.save(repo_folder_path + 'codebooks_K_32.npy', codebooks)
 
-    np.save('/mnt/HDD2/phudh/custom-guided-diffusion/models/codebooks_K_32.npy', codebooks)
-
-    codebooks = np.load('/mnt/HDD2/phudh/custom-guided-diffusion/models/codebooks_K_32.npy')
-    print('codebooks.shape:', codebooks.shape)
+    _codebooks = np.load(repo_folder_path + 'models/codebooks_K_32.npy')
+    print('_codebooks.shape:', _codebooks.shape)
 
     print('Codebook generated!')
     
@@ -76,14 +75,23 @@ def main():
         # sample_fn = (
         #     diffusion.p_sample_loop if not args.use_ddim else diffusion.ddim_sample_loop
         # )
-        sample_fn = diffusion.ddcm_sample_loop
-        sample = sample_fn(
+        # sample_fn = diffusion.ddcm_sample_loop
+        # sample = sample_fn(
+        #     model,
+        #     (args.batch_size, 3, args.image_size, args.image_size),
+        #     clip_denoised=args.clip_denoised,
+        #     model_kwargs=model_kwargs,
+        #     codebooks=_codebooks
+        # )
+        print('hehe')
+        sample = diffusion.ddcm_sample_loop(
             model,
             (args.batch_size, 3, args.image_size, args.image_size),
             clip_denoised=args.clip_denoised,
             model_kwargs=model_kwargs,
-            codebooks=codebooks
+            codebooks=_codebooks
         )
+
         sample = ((sample + 1) * 127.5).clamp(0, 255).to(th.uint8)
         sample = sample.permute(0, 2, 3, 1)
         sample = sample.contiguous()
@@ -108,7 +116,7 @@ def main():
         shape_str = "x".join([str(x) for x in arr.shape])
         # out_path = os.path.join(logger.get_dir(), f"samples_{shape_str}.npz")
         out_filename =  f"samples_{shape_str}"
-        out_path = os.path.join("/mnt/HDD2/phudh/custom-guided-diffusion/npz_output", out_filename + ".npz")
+        out_path = os.path.join(repo_folder_path + "npz_output", out_filename + ".npz")
         logger.log(f"saving to {out_path}")
         if args.class_cond:
             np.savez(out_path, arr, label_arr)
@@ -120,7 +128,7 @@ def main():
         images = data['arr_0'][0]
         plt.imshow(images)
         plt.axis('off')  # Remove axes for a cleaner image
-        plt.savefig(f"/mnt/HDD2/phudh/custom-guided-diffusion/png_output/" + out_filename + datetime.now().strftime("_date_%Y%m%d_time_%H%M") + ".png", bbox_inches='tight', pad_inches=0)
+        plt.savefig(repo_folder_path + f"png_output/" + out_filename + datetime.now().strftime("_date_%Y%m%d_time_%H%M") + ".png", bbox_inches='tight', pad_inches=0)
         plt.close()  # Close the figure to avoid overlapping
 
     dist.barrier()

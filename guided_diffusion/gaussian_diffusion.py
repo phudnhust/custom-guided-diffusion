@@ -639,6 +639,7 @@ class GaussianDiffusion:  # initialize in function create_model_and_diffusion
         :param device: if specified, the device to create the samples on.
                        If not specified, use a model parameter's device.
         :param progress: if True, show a tqdm progress bar.
+        :param codebooks: the codebooks to sample from.
         :return: a non-differentiable batch of samples.
         """
         final = None
@@ -694,13 +695,8 @@ class GaussianDiffusion:  # initialize in function create_model_and_diffusion
             return th.tensor(arr, device=device).unsqueeze(0).to(device)
         
         # hq_img = load_hq_image("/mnt/HDD2/phudh/custom-guided-diffusion/hq_img/CelebDataProcessed/Jennifer Lopez/8.jpg")
-        hq_img = load_hq_image("/mnt/HDD2/phudh/custom-guided-diffusion/hq_img/CelebDataProcessed/Leonardo DiCaprio/20.jpg")
-
-        # # Initial noise
-        # if noise is not None:
-        #     img = noise
-        # else:
-        #     img = th.randn(*shape, device=device)
+        # hq_img = load_hq_image("/mnt/HDD2/phudh/custom-guided-diffusion/hq_img/CelebDataProcessed/Leonardo DiCaprio/20.jpg")
+        hq_img = load_hq_image("/mnt/HDD2/phudoan/my_stuff/custom-guided-diffusion/hq_img/academic_gown/000.jpg")
 
         # Inference steps
         indices = list(range(self.num_timesteps))[::-1]
@@ -743,7 +739,7 @@ class GaussianDiffusion:  # initialize in function create_model_and_diffusion
 
         print('compressed_representation:', compressed_representation)
         from datetime import datetime
-        np.save('/mnt/HDD2/phudh/custom-guided-diffusion/compressed_info/compressed_representation' + datetime.now().strftime("_date_%Y%m%d_time_%H%M")  + '.npy', compressed_representation)
+        np.save('/mnt/HDD2/phudoan/my_stuff/custom-guided-diffusion/compressed_info/compressed_representation' + datetime.now().strftime("_date_%Y%m%d_time_%H%M")  + '.npy', compressed_representation)
 
 
 ################################
