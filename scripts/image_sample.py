@@ -36,6 +36,8 @@ def main():
         dist_util.load_state_dict(args.model_path, map_location="cpu")
     )
     model.to(dist_util.dev())
+    print('device:', dist_util.dev())
+
     if args.use_fp16:
         model.convert_to_fp16()
     model.eval()
@@ -43,6 +45,27 @@ def main():
     logger.log("sampling...")
     all_images = []
     all_labels = []
+    
+    # Generate codebook
+    print('Generating codebook...')
+    K = 32; img_size = 256; T = 1000
+
+    # --------- Using numpy ---------
+    # np.random.seed(100)
+    # codebooks = np.random.randn(T + 1, K, 3, img_size, img_size).astype(np.float16)
+
+    # SHOULD USE: -------- Using torch ---------
+    ## th.manual_seed(100)
+    codebooks = th.randn((T + 1, K, 3, img_size, img_size), dtype=th.float16, device='cpu')
+    codebooks = codebooks.numpy()
+
+    np.save('/mnt/HDD2/phudh/custom-guided-diffusion/models/codebooks_K_32.npy', codebooks)
+
+    codebooks = np.load('/mnt/HDD2/phudh/custom-guided-diffusion/models/codebooks_K_32.npy')
+    print('codebooks.shape:', codebooks.shape)
+
+    print('Codebook generated!')
+    
     while len(all_images) * args.batch_size < args.num_samples:
         model_kwargs = {}
         if args.class_cond:
@@ -59,6 +82,7 @@ def main():
             (args.batch_size, 3, args.image_size, args.image_size),
             clip_denoised=args.clip_denoised,
             model_kwargs=model_kwargs,
+            codebooks=codebooks
         )
         sample = ((sample + 1) * 127.5).clamp(0, 255).to(th.uint8)
         sample = sample.permute(0, 2, 3, 1)

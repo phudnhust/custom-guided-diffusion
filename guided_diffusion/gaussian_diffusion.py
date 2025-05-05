@@ -620,6 +620,7 @@ class GaussianDiffusion:  # initialize in function create_model_and_diffusion
         model_kwargs=None,
         device=None,
         progress=False,
+        codebooks=None
     ):
         """
         Generate samples from the model.
@@ -651,6 +652,7 @@ class GaussianDiffusion:  # initialize in function create_model_and_diffusion
             model_kwargs=model_kwargs,
             device=device,
             progress=progress,
+            codebooks=codebooks
         ):
             final = sample
         return final["sample"]
@@ -666,6 +668,7 @@ class GaussianDiffusion:  # initialize in function create_model_and_diffusion
         model_kwargs=None,
         device=None,
         progress=False,
+        codebooks=None            # codebooks is already load from image_sample.py
     ):
         """
         Generate samples from the model and yield intermediate samples from
@@ -692,26 +695,6 @@ class GaussianDiffusion:  # initialize in function create_model_and_diffusion
         
         # hq_img = load_hq_image("/mnt/HDD2/phudh/custom-guided-diffusion/hq_img/CelebDataProcessed/Jennifer Lopez/8.jpg")
         hq_img = load_hq_image("/mnt/HDD2/phudh/custom-guided-diffusion/hq_img/CelebDataProcessed/Leonardo DiCaprio/20.jpg")
-
-        # Generate codebook
-        print('Generating codebook...')
-        K = 32; img_size = 256; T = 1000
-
-        # --------- Using numpy ---------
-        # np.random.seed(100)
-        # codebooks = np.random.randn(T + 1, K, 3, img_size, img_size).astype(np.float16)
-
-        # SHOULD USE: -------- Using torch ---------
-        ## th.manual_seed(100)
-        codebooks = th.randn((T + 1, K, 3, img_size, img_size), dtype=th.float16, device='cpu')
-        codebooks = codebooks.numpy()
-
-        np.save('/mnt/HDD2/phudh/custom-guided-diffusion/models/codebooks_K_32.npy', codebooks)
-
-        codebooks = np.load('/mnt/HDD2/phudh/custom-guided-diffusion/models/codebooks_K_32.npy')
-        print('codebooks.shape:', codebooks.shape)
-
-        print('Codebook generated!')
 
         # # Initial noise
         # if noise is not None:
