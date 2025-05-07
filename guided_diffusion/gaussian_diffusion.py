@@ -534,7 +534,7 @@ class GaussianDiffusion:  # initialize in function create_model_and_diffusion
                 yield out
                 img = out["sample"]
 
-#################################
+################################
 
     def ddcm_sample(        # called in function ddcm_sample
         self,
@@ -697,7 +697,6 @@ class GaussianDiffusion:  # initialize in function create_model_and_diffusion
             progress=progress,
             codebooks=codebooks,
             hq_img_path=hq_img_path,
-            noise_blend=noise_blend
         ):
             final = sample
         return final["sample"]
@@ -787,8 +786,108 @@ class GaussianDiffusion:  # initialize in function create_model_and_diffusion
 
         print('compressed_representation:', compressed_representation)
         from datetime import datetime
-        np.save('/mnt/HDD2/phudoan/my_stuff/custom-guided-diffusion/compressed_info/compressed_representation' + datetime.now().strftime("_date_%Y%m%d_time_%H%M")  + '.npy', compressed_representation)
+        np.save('/mnt/HDD2/phudh/custom-guided-diffusion/compressed_info/compressed_representation' + datetime.now().strftime("_date_%Y%m%d_time_%H%M")  + '.npy', compressed_representation)
 
+    def ddcm_sample_direct(
+        self,
+        model,
+        shape,
+        noise=None,
+        clip_denoised=True,
+        denoised_fn=None,
+        cond_fn=None,
+        model_kwargs=None,
+        device=None,
+        progress=False,
+        codebook=None,
+        hq_img_path=None,         # high quality image path
+        timestep=1
+    ):
+        if device is None:
+            device = next(model.parameters()).device
+        # --------- LOAD HQ IMAGE ---------
+        print('Step 1: Load HQ image')
+        def load_hq_image(path):
+            from PIL import Image
+            pil_image = Image.open(path)
+            pil_image.load()
+            pil_image = pil_image.convert("RGB")
+            arr = np.array(pil_image)
+            arr = arr.astype(np.float32) / 127.5 - 1
+            arr = np.transpose(arr, [2, 0, 1])
+            return th.tensor(arr, device=device).unsqueeze(0).to(device)
+        x_start = load_hq_image(hq_img_path)
+
+        # --------- ADD NOISE INTO HQ IMAGE ---------
+        print('Step 2: Add noise into HQ image')
+        batch_size = 1
+        t_batch = th.tensor([timestep] * batch_size, device=device)
+        noise = th.randn_like(x_start).to(device)
+        x_t = self.q_sample(x_start=x_start, t=t_batch, noise=noise)
+
+        print('device:', device)
+        # --------- DENOISE TO x_(t-1) ----------
+        print('Step 3: Denoise to x_(t-1)')
+        with th.no_grad():
+            out = self.ddcm_sample(
+                model,
+                x=x_t.to(device),
+                t=t_batch.to(device),
+                clip_denoised=clip_denoised,
+                denoised_fn=denoised_fn,
+                cond_fn=cond_fn,
+                model_kwargs=model_kwargs,
+                hq_img=x_start.to(device),
+                codebook=th.from_numpy(codebook).to(device),  # Sample from codebook,
+            )
+
+        # --------- SAMPLE FROM CODEBOOK ---------
+        print('Step 4: Sample from codebook')
+        retrieved_index = out["codebook_index"].cpu().numpy().item() if type(out["codebook_index"]) is th.Tensor else out["codebook_index"]
+        
+        #---------- FIND TOP 5 SIMILAR VECTORS ---------
+        print('Step 5: Find top 5 similar vectors')
+        def cosine_top_blend_4d(anchor, codebook, top=5, temperature=0.1):
+            """
+            anchor: (1, C, H, W)
+            codebook: (K, C, H, W)
+            Returns:
+                refined: (1, C, H, W)
+            """
+            import torch.nn.functional as F
+            print('anchor.shape:', anchor.shape)
+            print('codebook.shape:', codebook.shape)
+
+            # Flatten spatial dims
+            K, C, H, W = codebook.shape
+            anchor_flat = anchor.view(1, -1)                # (1, C*H*W)
+            codebook_flat = codebook.view(K, -1)            # (K, C*H*W)
+
+            # Normalize
+            anchor_norm = F.normalize(anchor_flat, dim=1)   # (1, D)
+            codebook_norm = F.normalize(codebook_flat, dim=1)  # (K, D)
+
+            # Cosine similarity
+            sim = th.matmul(codebook_norm, anchor_norm.T).squeeze(1)  # (K,)
+
+            # Top-5 selection
+            top_scores, top_idx = th.topk(sim, k=top)
+
+            # top_vectors = codebook[top_idx]                            # (5, C, H, W)
+
+            return top_idx
+
+        print(type(codebook))
+        top_sim_idx = cosine_top_blend_4d(th.from_numpy(np.expand_dims(codebook[retrieved_index], axis=0)), 
+                                          th.from_numpy(codebook),
+                                          top=6)
+        top_sim_idx = top_sim_idx[top_sim_idx != retrieved_index]
+        
+        # ---------- return WITH CODEBOOK ---------
+        print('codebook_index:', retrieved_index)
+        print('top_sim_idx:', top_sim_idx)
+
+        return {"retrieved_index": retrieved_index, "top_sim_idx": top_sim_idx}
 
 ################################
 

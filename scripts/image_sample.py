@@ -53,7 +53,8 @@ def main():
     all_images = []
     all_labels = []
 
-    repo_folder_path = "/mnt/HDD2/phudoan/my_stuff/custom-guided-diffusion/"
+    # repo_folder_path = "/mnt/HDD2/phudoan/my_stuff/custom-guided-diffusion/"  # (server 147)
+    repo_folder_path = "/mnt/HDD2/phudh/custom-guided-diffusion/"    # (server 118 or 92)
     
     # Generate codebook
     start_time = time.perf_counter()
@@ -93,8 +94,9 @@ def main():
             clip_denoised=args.clip_denoised,
             model_kwargs=model_kwargs,
             codebooks=_codebooks,
-            # hq_img_path="/mnt/HDD2/phudoan/my_stuff/custom-guided-diffusion/hq_img/academic_gown/000.jpg",
-            hq_img_path="/mnt/HDD2/phudoan/my_stuff/custom-guided-diffusion/hq_img/academic_gown/004.jpg",
+            # hq_img_path="/mnt/HDD2/phudh/custom-guided-diffusion/hq_img/academic_gown/000.jpg",
+            # hq_img_path="/mnt/HDD2/phudh/custom-guided-diffusion/hq_img/academic_gown/004.jpg",
+            hq_img_path='/mnt/HDD2/phudh/custom-guided-diffusion/hq_img/CelebDataProcessed/Barack Obama/4.jpg',
             noise_blend=False
         )
 
