@@ -801,12 +801,16 @@ class GaussianDiffusion:  # initialize in function create_model_and_diffusion
         progress=False,
         codebook=None,
         hq_img_path=None,         # high quality image path
-        timestep=1
+        timestep=1,
+        verbose=True
     ):
         if device is None:
             device = next(model.parameters()).device
         # --------- LOAD HQ IMAGE ---------
-        print('Step 1: Load HQ image')
+        if verbose:
+            print('device:', device)
+            print('timestep: ', timestep)
+            print('Step 1: Load HQ image')
         def load_hq_image(path):
             from PIL import Image
             pil_image = Image.open(path)
@@ -819,15 +823,16 @@ class GaussianDiffusion:  # initialize in function create_model_and_diffusion
         x_start = load_hq_image(hq_img_path)
 
         # --------- ADD NOISE INTO HQ IMAGE ---------
-        print('Step 2: Add noise into HQ image')
+        if verbose:
+            print('Step 2: Add noise into HQ image')
         batch_size = 1
         t_batch = th.tensor([timestep] * batch_size, device=device)
         noise = th.randn_like(x_start).to(device)
         x_t = self.q_sample(x_start=x_start, t=t_batch, noise=noise)
 
-        print('device:', device)
         # --------- DENOISE TO x_(t-1) ----------
-        print('Step 3: Denoise to x_(t-1)')
+        if verbose:
+            print('Step 3: Denoise to x_(t-1)')
         with th.no_grad():
             out = self.ddcm_sample(
                 model,
@@ -842,11 +847,13 @@ class GaussianDiffusion:  # initialize in function create_model_and_diffusion
             )
 
         # --------- SAMPLE FROM CODEBOOK ---------
-        print('Step 4: Sample from codebook')
+        if verbose:
+            print('Step 4: Sample from codebook')
         retrieved_index = out["codebook_index"].cpu().numpy().item() if type(out["codebook_index"]) is th.Tensor else out["codebook_index"]
         
         #---------- FIND TOP 5 SIMILAR VECTORS ---------
-        print('Step 5: Find top 5 similar vectors')
+        if verbose:
+            print('Step 5: Find top 5 similar vectors')
         def cosine_top_blend_4d(anchor, codebook, top=5, temperature=0.1):
             """
             anchor: (1, C, H, W)
@@ -855,8 +862,8 @@ class GaussianDiffusion:  # initialize in function create_model_and_diffusion
                 refined: (1, C, H, W)
             """
             import torch.nn.functional as F
-            print('anchor.shape:', anchor.shape)
-            print('codebook.shape:', codebook.shape)
+            # print('anchor.shape:', anchor.shape)
+            # print('codebook.shape:', codebook.shape)
 
             # Flatten spatial dims
             K, C, H, W = codebook.shape
@@ -877,17 +884,17 @@ class GaussianDiffusion:  # initialize in function create_model_and_diffusion
 
             return top_idx
 
-        print(type(codebook))
+        # print(type(codebook))
         top_sim_idx = cosine_top_blend_4d(th.from_numpy(np.expand_dims(codebook[retrieved_index], axis=0)), 
                                           th.from_numpy(codebook),
                                           top=6)
         top_sim_idx = top_sim_idx[top_sim_idx != retrieved_index]
         
         # ---------- return WITH CODEBOOK ---------
-        print('codebook_index:', retrieved_index)
-        print('top_sim_idx:', top_sim_idx)
+        # print('retrieved_index:', retrieved_index)
+        # print('top_sim_idx:', top_sim_idx)
 
-        return {"retrieved_index": retrieved_index, "top_sim_idx": top_sim_idx}
+        return {"retrieved_index": retrieved_index, "top_sim_idx": top_sim_idx, "residual": x_start - out["pred_xstart"]}
 
 ################################
 

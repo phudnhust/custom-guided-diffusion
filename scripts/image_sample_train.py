@@ -40,6 +40,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch.utils.data import DataLoader
 import math
+import random
 
 # --------- RefineNoiseNet Definition ---------
 class RefineNoiseNet(nn.Module):
@@ -80,6 +81,56 @@ class RefineNoiseNet(nn.Module):
         emb = t.float().unsqueeze(1) * emb.unsqueeze(0)  # (B, half_dim)
         # Sinusoidal embedding: (B, E)
         return th.cat([th.sin(emb), th.cos(emb)], dim=-1)
+
+    def train_refine_step(
+        self,    # your RefineNoiseNet instance
+        optimizer,     # optimizer for refine_net
+        top5_vectors,  # Tensor, shape (B, 5, C, H, W)
+        timesteps,     # LongTensor, shape (B,)
+        residuals,     # Tensor, shape (B, C, H, W)  = (x0 - x0_pred)
+        t_embed_fn     # fn: (timesteps: Tensor[B]) -> Tensor (B, E)
+    ):
+        """
+        Performs one training step of RefineNoiseNet.
+
+        Inputs:
+        top5_vectors  (B, 5, C, H, W) — the 5 nearest codebook noise maps  
+        timesteps     (B,)            — the diffusion step index for each sample  
+        residuals     (B, C, H, W)    — the true denoising residual x0 – x0_pred  
+        t_embed_fn    fn to get timestep embeddings of shape (B, E)
+
+        Returns:
+        loss.item()  — the scalar inner‐product loss
+        """
+        B, K, C, H, W = top5_vectors.shape
+        # print('B, K, C, H, W:', top5_vectors.shape)
+        D = C * H * W
+
+        # 1) Flatten spatial dims
+        # vectors_flat: (B, 5, D)
+        vectors_flat = top5_vectors.contiguous().view(B, K, D)
+        # residuals_flat: (B, D)
+        residuals_flat = residuals.contiguous().view(B, D)
+
+        # 2) Compute timestep embeddings
+        # t_embed: (B, E)
+        t_embed = t_embed_fn(timesteps, dim=128)
+
+        # 3) Forward through RefineNoiseNet
+        # v_hat: (B, D), weights: (B, 5)
+        v_hat, weights = self(vectors_flat, t_embed)
+
+        # 4) Inner‐product loss
+        # ⟨residuals_flat, v_hat⟩ summed over D, mean over B
+        # loss = - (residuals_flat * v_hat).sum(dim=1).mean()
+        loss = F.mse_loss(v_hat, residuals_flat)  # L2 loss
+
+        # 5) Backprop
+        optimizer.zero_grad()
+        loss.backward()
+        optimizer.step()
+
+        return loss.item()
 
 
 
@@ -145,21 +196,67 @@ def main():
         )
         model_kwargs["y"] = classes
     
-    sample_fn = diffusion.ddcm_sample_direct
-    sample = sample_fn(
-        model,
-        shape=(args.batch_size, 3, args.image_size, args.image_size),
-        clip_denoised=args.clip_denoised,
-        model_kwargs=model_kwargs,
-        codebook=_codebooks[100],
-        # hq_img_path="/mnt/HDD2/phudh/custom-guided-diffusion/hq_img/academic_gown/000.jpg",
-        # hq_img_path="/mnt/HDD2/phudh/custom-guided-diffusion/hq_img/academic_gown/004.jpg",
-        hq_img_path='/mnt/HDD2/phudh/custom-guided-diffusion/hq_img/CelebDataProcessed/Barack Obama/4.jpg',
-        timestep=100
+    #---------------------------------------
+    refine_net = RefineNoiseNet(vector_dim=3*256*256, t_embed_dim=128).to(dist_util.dev())
+    optimizer = th.optim.AdamW(
+        refine_net.parameters(),
+        lr=1e-4,           # a good starting point
+        weight_decay=1e-2  # small amount of L2 regularization
     )
-    print('sample: ', sample) 
-    # print('sample[\'retrieved_index\']', sample['retrieved_index'])
-    # print('sample[\'top_sim_idx\']', sample['top_sim_idx'])
+    verbose = False
+
+    # load data
+    batch_size = 16
+    hq_img_folder = '/mnt/HDD2/phudh/custom-guided-diffusion/hq_img/CelebDataProcessed/Barack Obama'
+    all_hq_img = [os.path.join(hq_img_folder, f) for f in os.listdir(hq_img_folder) if os.path.isfile(os.path.join(hq_img_folder, f))]
+    random.shuffle(all_hq_img)  # Shuffle to ensure randomness before slicing
+    hq_img_subset = all_hq_img[:int(0.7 * len(all_hq_img))]
+    hq_img_batches = [hq_img_subset[i:i+batch_size] for i in range(0, len(hq_img_subset), batch_size)]
+
+    for epoch in range(100):
+        print('epoch: ', epoch, end=' ')
+        # hq_img_batch = random.sample(hq_img_subset, batch_size)
+        epoch_loss = []
+        for hq_img_batch in hq_img_batches:
+            batch_size = len(hq_img_batch)
+           
+            timestep = th.randint(1, 1001, (1,)).item()
+
+            sample_fn = diffusion.ddcm_sample_direct
+            top5_vectors_list = []
+            residuals_list = []
+            for hq_img_path in hq_img_batch:
+                sample = sample_fn(
+                    model,
+                    shape=(args.batch_size, 3, args.image_size, args.image_size),
+                    clip_denoised=args.clip_denoised,
+                    model_kwargs=model_kwargs,
+                    codebook=_codebooks[timestep],
+                    hq_img_path=hq_img_path,
+                    timestep=timestep,
+                    verbose=verbose
+                )
+                # print('sample: ', sample) 
+                if verbose:
+                    print('sample[\'retrieved_index\']', sample['retrieved_index'])
+                    print('sample[\'top_sim_idx\']', sample['top_sim_idx'])
+                    print('-'*20); print()
+
+                top5_vectors_list.append(th.from_numpy(_codebooks[timestep][sample['top_sim_idx']]))
+                residuals_list.append(sample['residual'])
+
+            top5_vectors = th.stack(top5_vectors_list, dim=0).to(dist_util.dev())
+            residuals = th.stack(residuals_list, dim=0).to(dist_util.dev())
+            timesteps = th.tensor([timestep] * batch_size).to(dist_util.dev())
+
+            # if verbose:
+                # print('top5_vectors.shape:', top5_vectors.shape)  # torch.Size([16, 5, 3, 256, 256])
+                # print('residuals.shape:', residuals.shape)  # torch.Size([16, 1, 3, 256, 256])
+                # print('timesteps.shape:', timesteps.shape)  #  torch.Size([16])
+
+            loss = refine_net.train_refine_step(optimizer=optimizer, top5_vectors=top5_vectors, timesteps=timesteps, residuals=residuals, t_embed_fn=RefineNoiseNet.timestep_embedding)
+            epoch_loss.append(loss)
+        print('epoch_loss:', np.mean(epoch_loss))
 
 
     dist.barrier()
