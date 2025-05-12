@@ -86,21 +86,14 @@ class RefineNoiseNet(nn.Module):
 
         # 3) tính score dot-product và scale
         #    scores[b,j] = <query[b], keys[b,j]> / sqrt(H)
-        scores = th.matmul(query, keys.transpose(1, 2))
-        dk = query.size(-1)
-        scores = scores / math.sqrt(dk)
-
-        # scores = th.sum(keys * query, dim=-1) / math.sqrt(H)  # (B,5)
+        scores = th.sum(keys * query, dim=-1) / math.sqrt(H)  # (B,5)
 
         # 4) softmax để ra weights
         weights = F.softmax(scores, dim=-1)   # (B,5)
 
-        # weights.shape: torch.Size([32, 1, 5])
-        # top5_vectors.shape: torch.Size([32, 5, 196608])
-
         # 5) weighted sum trên giá trị là chính top5_vectors
-        refined = th.einsum('b n k, b k d -> b n d', weights, top5_vectors).squeeze(1)  # → [B, 1, 196608]
-        #refined.shape: torch.Size([32, 196608]) 
+        refined = th.sum(weights.unsqueeze(-1) * top5_vectors, dim=1)  # (B,D)
+
         return refined, weights
 
     def timestep_embedding(self, timesteps: th.LongTensor, dim: int):
@@ -153,19 +146,15 @@ class RefineNoiseNet(nn.Module):
         with th.cuda.amp.autocast():
             v_hat, weights = self(vectors_flat, anchor_flat, t_embed)
 
-            # 4) Inner‐product loss
-            # ⟨residuals_flat, v_hat⟩ summed over D, mean over B
-            # loss = - (residuals_flat * v_hat).sum(dim=1).mean()
+        # 4) Inner‐product loss
+        # ⟨residuals_flat, v_hat⟩ summed over D, mean over B
+        # loss = - (residuals_flat * v_hat).sum(dim=1).mean()
+        loss = F.mse_loss(v_hat, residuals_flat)  # L2 loss
 
-            # v_hat.shape: torch.Size([32, 196608])
-            # residuals_flat.shape: torch.Size([32, 196608])
-
-            loss = F.mse_loss(v_hat, residuals_flat)  # L2 loss
-
-            # 5) Backprop
-            optimizer.zero_grad()
-            loss.backward()
-            optimizer.step()
+        # 5) Backprop
+        optimizer.zero_grad()
+        loss.backward()
+        optimizer.step()
 
         return loss.item()
     
@@ -239,96 +228,76 @@ def main():
     print(f"Loading codebooks time: {elapsed_time:.6f} seconds")
     
     start_time = time.perf_counter()
-
-    model_kwargs = {}
-    if args.class_cond:
-        classes = th.randint(
-            low=0, high=NUM_CLASSES, size=(args.batch_size,), device=dist_util.dev()
-        )
-        model_kwargs["y"] = classes
     
     #---------------- REFINE NET INITIALIZE -----------------------
-    refine_net = RefineNoiseNet(vector_dim=3*256*256, t_embed_dim=128, attn_dim=256).to(dist_util.dev())
-    optimizer = th.optim.AdamW(
-        refine_net.parameters(),
-        lr=1e-6,           # a good starting point
-        weight_decay=1e-2  # small amount of L2 regularization
-    )
+    checkpoint = th.load(repo_folder_path + 'refine_net_0.pth')
+    refine_net = RefineNoiseNet(vector_dim=3*256*256, t_embed_dim=128, attn_dim=256).to(dist_util.dev())   
+    refine_net.load_state_dict(checkpoint['model_state_dict'])
 
-    # checkpoint = th.load(repo_folder_path + 'refine_net_950.pth')
-    # refine_net.load_state_dict(checkpoint['model_state_dict'])
-    # optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
-    # start_epoch = checkpoint['epoch'] + 1
-    # print('start_epoch:', start_epoch)
+    while len(all_images) * args.batch_size < args.num_samples:
+        model_kwargs = {}
+        if args.class_cond:
+            classes = th.randint(
+                low=0, high=NUM_CLASSES, size=(args.batch_size,), device=dist_util.dev()
+            )
+            model_kwargs["y"] = classes
+        # sample_fn = (
+        #     diffusion.p_sample_loop if not args.use_ddim else diffusion.ddim_sample_loop
+        # )
+        sample_fn = diffusion.ddcm_sample_loop
+        sample = sample_fn(
+            model,
+            (args.batch_size, 3, args.image_size, args.image_size),
+            clip_denoised=args.clip_denoised,
+            model_kwargs=model_kwargs,
+            codebooks=_codebooks,
+            # hq_img_path="/mnt/HDD2/phudh/custom-guided-diffusion/hq_img/academic_gown/000.jpg",
+            # hq_img_path="/mnt/HDD2/phudh/custom-guided-diffusion/hq_img/academic_gown/004.jpg",
+            # hq_img_path='/mnt/HDD2/phudh/custom-guided-diffusion/hq_img/CelebDataProcessed/Barack Obama/4.jpg',
+            # hq_img_path='/mnt/HDD2/phudh/custom-guided-diffusion/hq_img/CelebDataProcessed/Jennifer Lopez/8.jpg',
+            hq_img_path='/mnt/HDD2/phudh/custom-guided-diffusion/hq_img/CelebDataProcessed/Leonardo DiCaprio/20.jpg',
+            noise_refine=True,
+            noise_refine_model=refine_net
+        )
 
-    refine_net.train()
-    verbose = False
+        sample = ((sample + 1) * 127.5).clamp(0, 255).to(th.uint8)
+        sample = sample.permute(0, 2, 3, 1)
+        sample = sample.contiguous()
 
-    # load data
-    batch_size = 32
-    hq_img_folder = '/mnt/HDD2/phudh/custom-guided-diffusion/hq_img/CelebDataProcessed/Barack Obama'
-    all_hq_img = [os.path.join(hq_img_folder, f) for f in os.listdir(hq_img_folder) if os.path.isfile(os.path.join(hq_img_folder, f))]
-    random.shuffle(all_hq_img)  # Shuffle to ensure randomness before slicing
-    hq_img_subset = all_hq_img[:int(0.7 * len(all_hq_img))]
-    hq_img_batches = [hq_img_subset[i:i+batch_size] for i in range(0, len(hq_img_subset), batch_size)]
+        gathered_samples = [th.zeros_like(sample) for _ in range(dist.get_world_size())]
+        dist.all_gather(gathered_samples, sample)  # gather not supported with NCCL
+        all_images.extend([sample.cpu().numpy() for sample in gathered_samples])
+        if args.class_cond:
+            gathered_labels = [
+                th.zeros_like(classes) for _ in range(dist.get_world_size())
+            ]
+            dist.all_gather(gathered_labels, classes)
+            all_labels.extend([labels.cpu().numpy() for labels in gathered_labels])
+        logger.log(f"created {len(all_images) * args.batch_size} samples")
 
-    for epoch in range(0, 4000):
-        print('epoch: ', epoch, end=' ')
-        # hq_img_batch = random.sample(hq_img_subset, batch_size)
-        epoch_loss = []
-        for hq_img_batch in hq_img_batches:
-            batch_size = len(hq_img_batch)
-
-            timestep = th.randint(1, 1000, (1,)).item()
-
-            sample_fn = diffusion.ddcm_sample_direct
-            top5_vectors_list = []
-            residuals_list = []
-            anchor_vectors_list = []
-            for hq_img_path in hq_img_batch:
-                sample = sample_fn(
-                    model,
-                    shape=(args.batch_size, 3, args.image_size, args.image_size),
-                    clip_denoised=args.clip_denoised,
-                    model_kwargs=model_kwargs,
-                    codebook=_codebooks[timestep],
-                    hq_img_path=hq_img_path,
-                    timestep=timestep,
-                    verbose=verbose
-                )
-                # print('sample: ', sample) 
-                if verbose:
-                    print('sample[\'retrieved_index\']', sample['retrieved_index'])
-                    print('sample[\'top_sim_idx\']', sample['top_sim_idx'])
-                    print('-'*20); print()
-
-                top5_vectors_list.append(th.from_numpy(_codebooks[timestep][sample['top_sim_idx']]))
-                residuals_list.append(sample['residual'])
-                anchor_vectors_list.append(th.from_numpy(_codebooks[timestep][sample['retrieved_index']]).to(dist_util.dev()))
-
-
-            top5_vectors = th.stack(top5_vectors_list, dim=0).to(dist_util.dev())
-            residuals = th.stack(residuals_list, dim=0).to(dist_util.dev())
-            anchor_vector = th.stack(anchor_vectors_list, dim=0).to(dist_util.dev())
-
-            timesteps = th.tensor([timestep] * batch_size).to(dist_util.dev())
-            t_embed = refine_net.timestep_embedding(timesteps, dim=128).to(dist_util.dev())
-
-            # print('anchor_vector.shape:', anchor_vector.shape)  # 
-
-            # if verbose:
-                # print('top5_vectors.shape:', top5_vectors.shape)  # torch.Size([16, 5, 3, 256, 256])
-                # print('residuals.shape:', residuals.shape)  # torch.Size([16, 1, 3, 256, 256])
-                # print('timesteps.shape:', timesteps.shape)  #  torch.Size([16])
-
-            loss = refine_net.train_refine_step(optimizer=optimizer, top5_vectors=top5_vectors, anchor_vector=anchor_vector, residuals=residuals, t_embed=t_embed)
-            epoch_loss.append(loss)
+    arr = np.concatenate(all_images, axis=0)
+    arr = arr[: args.num_samples]
+    if args.class_cond:
+        label_arr = np.concatenate(all_labels, axis=0)
+        label_arr = label_arr[: args.num_samples]
+    if dist.get_rank() == 0:
+        shape_str = "x".join([str(x) for x in arr.shape])
+        # out_path = os.path.join(logger.get_dir(), f"samples_{shape_str}.npz")
+        out_filename =  f"samples_{shape_str}"
+        out_path = os.path.join(repo_folder_path + "npz_output", out_filename + ".npz")
+        logger.log(f"saving to {out_path}")
+        if args.class_cond:
+            np.savez(out_path, arr, label_arr)
+        else:
+            np.savez(out_path, arr)
         
-        if epoch % 500 == 0 or epoch == 3999:
-            refine_net.save_checkpoint(optimizer, epoch, path=repo_folder_path + f'refine_net_{epoch}.pth')
-        print('epoch_loss:', np.mean(epoch_loss))
-        
-
+        # output to png
+        data = np.load(out_path)
+        images = data['arr_0'][0]
+        plt.imshow(images)
+        plt.axis('off')  # Remove axes for a cleaner image
+        plt.savefig(repo_folder_path + f"png_output/" + out_filename + datetime.now().strftime("_date_%Y%m%d_time_%H%M") + ".png", bbox_inches='tight', pad_inches=0)
+        plt.close()  # Close the figure to avoid overlapping
 
     dist.barrier()
     logger.log("sampling complete")

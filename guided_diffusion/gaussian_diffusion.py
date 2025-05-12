@@ -548,7 +548,9 @@ class GaussianDiffusion:  # initialize in function create_model_and_diffusion
         hq_img=None,       # high quality image
         codebook=None,
         compressed_info=None,
-        noise_blend=False  # if True, blend the noise with the codebook
+        noise_refine=False,  # if True, blend the noise with the codebook
+        noise_refine_model=None,
+        device=None,
     ):
         """
         Sample x_{t-1} from the model at the given timestep.
@@ -567,6 +569,7 @@ class GaussianDiffusion:  # initialize in function create_model_and_diffusion
                  - 'sample': a random sample from the model.
                  - 'pred_xstart': a prediction of x_0.
         """
+        # print('step: ', t.item())
         out = self.p_mean_variance(
             model,
             x,
@@ -602,41 +605,64 @@ class GaussianDiffusion:  # initialize in function create_model_and_diffusion
         # print("noise shape:", noise.shape)
         # print("hq_img shape:", hq_img.shape)
         # print("out['pred_xstart'] shape:", out["pred_xstart"].shape)
+        
+        # print('old noise.shape:', noise.shape)
 
-        def cosine_top_blend_4d(anchor, codebook, top=10, temperature=0.1):
-            """
-            anchor: (1, C, H, W)
-            codebook: (K, C, H, W)
-            Returns:
-                refined: (1, C, H, W)
-            """
-            import torch.nn.functional as F
+        if noise_refine:
+            def cosine_top_blend_4d(anchor, codebook, top=5, temperature=0.1):
+                """
+                anchor: (1, C, H, W)
+                codebook: (K, C, H, W)
+                Returns:
+                    refined: (1, C, H, W)
+                """
+                import torch.nn.functional as F
+                # print('anchor.shape:', anchor.shape)
+                # print('codebook.shape:', codebook.shape)
 
-            # Flatten spatial dims
-            K, C, H, W = codebook.shape
-            anchor_flat = anchor.view(1, -1)                # (1, C*H*W)
-            codebook_flat = codebook.view(K, -1)            # (K, C*H*W)
+                # Flatten spatial dims
+                K, C, H, W = codebook.shape
+                anchor_flat = anchor.view(1, -1)                # (1, C*H*W)
+                codebook_flat = codebook.view(K, -1)            # (K, C*H*W)
 
-            # Normalize
-            anchor_norm = F.normalize(anchor_flat, dim=1)   # (1, D)
-            codebook_norm = F.normalize(codebook_flat, dim=1)  # (K, D)
+                # Normalize
+                anchor_norm = F.normalize(anchor_flat, dim=1)   # (1, D)
+                codebook_norm = F.normalize(codebook_flat, dim=1)  # (K, D)
 
-            # Cosine similarity
-            sim = th.matmul(codebook_norm, anchor_norm.T).squeeze(1)  # (K,)
+                # Cosine similarity
+                sim = th.matmul(codebook_norm, anchor_norm.T).squeeze(1)  # (K,)
 
-            # Top-5 selection
-            top_scores, top_idx = th.topk(sim, k=top)
-            weights = F.softmax(top_scores / temperature, dim=0)        # (5,)
+                # Top-5 selection
+                top_scores, top_idx = th.topk(sim, k=top)
 
-            # Weighted blend
-            top_vectors = codebook[top_idx]                            # (5, C, H, W)
-            refined = th.sum(weights[:, None, None, None] * top_vectors, dim=0, keepdim=True)  # (1, C, H, W)
+                # top_vectors = codebook[top_idx]                            # (5, C, H, W)
 
-            return refined
+                return top_idx
 
-        if noise_blend:
-            noise = cosine_top_blend_4d(noise, codebook, top=10)
+            # print(type(codebook))
+            top_sim_idx = cosine_top_blend_4d(codebook[idxs].unsqueeze(0), 
+                                              codebook,
+                                              top=6)
+            top_sim_idx = top_sim_idx[top_sim_idx != idxs]
+            top5_vectors = codebook[top_sim_idx].unsqueeze(0)  # (B=1, 5, C, H, W)
+            anchor_vectors = codebook[idxs]  # (B=1, C, H, W)
 
+            # print('top5_vectors.shape:', top5_vectors.shape)
+            # print('anchor_vectors.shape:', anchor_vectors.shape)
+            B, K, C, H, W = top5_vectors.shape
+            D = C*H*W
+            vectors_flat = top5_vectors.contiguous().view(B, K, D).to(device)    # (B,5,D)
+            anchor_flat = anchor_vectors.contiguous().view(B, D).to(device)       # (B,D)
+            timestep = th.tensor([t.item()]).to(device)                  # (1)
+            t_embed = noise_refine_model.timestep_embedding(timestep, dim=128)                # (1, 128)
+
+            # 3) Forward through RefineNoiseNet
+            # v_hat: (B, D), weights: (B, 5)
+            with th.cuda.amp.autocast():
+                noise, _ = noise_refine_model(vectors_flat, anchor_flat, t_embed)
+                noise = noise.view(B, C, H, W).clamp(-1, 1)  # (B, C, H, W)
+
+        # print('new noise.shape:', noise.shape)
         # no noise when t == 0
         nonzero_mask = (
             (t != 0).float().view(-1, *([1] * (len(x.shape) - 1)))
@@ -662,7 +688,8 @@ class GaussianDiffusion:  # initialize in function create_model_and_diffusion
         progress=False,
         codebooks=None,
         hq_img_path=None,         # high quality image path
-        noise_blend=False         # if True, blend the noise with the codebook
+        noise_refine=False,         # if True, blend the noise with the codebook
+        noise_refine_model=None
     ):
         """
         Generate samples from the model.
@@ -697,6 +724,9 @@ class GaussianDiffusion:  # initialize in function create_model_and_diffusion
             progress=progress,
             codebooks=codebooks,
             hq_img_path=hq_img_path,
+            noise_refine=noise_refine,
+            noise_refine_model=noise_refine_model
+
         ):
             final = sample
         return final["sample"]
@@ -714,7 +744,8 @@ class GaussianDiffusion:  # initialize in function create_model_and_diffusion
         progress=False,
         codebooks=None,            # codebooks is already load from image_sample.py
         hq_img_path=None,         # high quality image path
-        noise_blend=False         # if True, blend the noise with the codebook
+        noise_refine=False,         # if True, blend the noise with the codebook
+        noise_refine_model=None
     ):
         """
         Generate samples from the model and yield intermediate samples from
@@ -778,7 +809,9 @@ class GaussianDiffusion:  # initialize in function create_model_and_diffusion
                     hq_img=hq_img,
                     codebook=th.from_numpy(codebooks[i]).to(device),  # Sample from codebook,
                     compressed_info=compressed_info,
-                    noise_blend=noise_blend
+                    noise_refine=noise_refine,
+                    noise_refine_model=noise_refine_model,
+                    device=device
                 )
                 yield out
                 img = out["sample"]
