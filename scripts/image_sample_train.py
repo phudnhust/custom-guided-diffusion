@@ -131,6 +131,22 @@ class RefineNoiseNet(nn.Module):
         optimizer.step()
 
         return loss.item()
+    
+    def save_checkpoint(self, optimizer, epoch, path="refiner_checkpoint.pth"):
+        """
+        Saves model+optimizer state and current epoch.
+        
+        refine_net:   your RefineNoiseNet instance
+        optimizer:    the optimizer you’re using (e.g. AdamW)
+        epoch:        current epoch number (int)
+        path:         where to write the .pth file
+        """
+        th.save({
+            'epoch': epoch,
+            'model_state_dict': self.state_dict(),
+            'optimizer_state_dict': optimizer.state_dict(),
+        }, path)
+        print(f"Saved checkpoint: {path}")
 
 
 
@@ -200,27 +216,27 @@ def main():
     refine_net = RefineNoiseNet(vector_dim=3*256*256, t_embed_dim=128).to(dist_util.dev())
     optimizer = th.optim.AdamW(
         refine_net.parameters(),
-        lr=1e-4,           # a good starting point
+        lr=1e-6,           # a good starting point
         weight_decay=1e-2  # small amount of L2 regularization
     )
     verbose = False
 
     # load data
-    batch_size = 16
+    batch_size = 32
     hq_img_folder = '/mnt/HDD2/phudh/custom-guided-diffusion/hq_img/CelebDataProcessed/Barack Obama'
     all_hq_img = [os.path.join(hq_img_folder, f) for f in os.listdir(hq_img_folder) if os.path.isfile(os.path.join(hq_img_folder, f))]
     random.shuffle(all_hq_img)  # Shuffle to ensure randomness before slicing
     hq_img_subset = all_hq_img[:int(0.7 * len(all_hq_img))]
     hq_img_batches = [hq_img_subset[i:i+batch_size] for i in range(0, len(hq_img_subset), batch_size)]
 
-    for epoch in range(100):
+    for epoch in range(1000):
         print('epoch: ', epoch, end=' ')
         # hq_img_batch = random.sample(hq_img_subset, batch_size)
         epoch_loss = []
         for hq_img_batch in hq_img_batches:
             batch_size = len(hq_img_batch)
-           
-            timestep = th.randint(1, 1001, (1,)).item()
+
+            timestep = th.randint(1, 1000, (1,)).item()
 
             sample_fn = diffusion.ddcm_sample_direct
             top5_vectors_list = []
@@ -257,6 +273,7 @@ def main():
             loss = refine_net.train_refine_step(optimizer=optimizer, top5_vectors=top5_vectors, timesteps=timesteps, residuals=residuals, t_embed_fn=RefineNoiseNet.timestep_embedding)
             epoch_loss.append(loss)
         print('epoch_loss:', np.mean(epoch_loss))
+        
 
 
     dist.barrier()
