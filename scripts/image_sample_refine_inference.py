@@ -42,6 +42,8 @@ from torch.utils.data import DataLoader
 import math
 import random
 
+
+
 # --------- RefineNoiseNet Definition ---------
 class RefineNoiseNet(nn.Module):
     def __init__(self, vector_dim, t_embed_dim, attn_dim):
@@ -58,25 +60,21 @@ class RefineNoiseNet(nn.Module):
         # project top-5 vectors to key space
         self.Wk = nn.Linear(vector_dim, attn_dim)
 
-    def forward(self, top5_vectors, anchor_vector, t_embed):
+
+    def forward(self, topk_vectors, anchor_vector, t_embed):
         """
-        top5_vectors: (B, 5, D)    — 5 vector giống nhất đã flatten
+        topk_vectors: (B, 5, D)    — 5 vector giống nhất đã flatten
         anchor_vector: (B, D)      — vector retrieved (flattened)
         t_embed: (B, E)        — timestep embedding
         Trả về:
           refined: (B, D)          — weighted sum của top5
           weights: (B, 5)          — softmax attention weights
         """
-        B, K, D = top5_vectors.shape
-        H = self.Wq.out_features
 
         # 1) projection key: từ (B,5,D) -> (B,5,H)
-        keys = self.Wk(top5_vectors)         # (B,5,H)
+        keys = self.Wk(topk_vectors)         # (B,5,H)
 
         # 2) projection query: từ (B,D) -> (B,H) rồi thêm chiều -> (B,1,H)
-        # query = self.Wq(anchor_vector)       # (B,H)
-        # query = query.unsqueeze(1)           # (B,1,H)
-
         # query from anchor: (B,H)
         q_anchor = self.Wq(anchor_vector)  
         # query from timestep: (B,H)
@@ -86,14 +84,17 @@ class RefineNoiseNet(nn.Module):
 
         # 3) tính score dot-product và scale
         #    scores[b,j] = <query[b], keys[b,j]> / sqrt(H)
-        scores = th.sum(keys * query, dim=-1) / math.sqrt(H)  # (B,5)
+        scores = th.matmul(query, keys.transpose(1, 2))
+        dk = query.size(-1)
+        scores = scores / math.sqrt(dk)
 
         # 4) softmax để ra weights
-        weights = F.softmax(scores, dim=-1)   # (B,5)
+        weights = F.softmax(scores, dim=-1)        # weights.shape: torch.Size([32, 1, 5])
+                                                   # topk_vectors.shape: torch.Size([32, 5, 196608])
 
-        # 5) weighted sum trên giá trị là chính top5_vectors
-        refined = th.sum(weights.unsqueeze(-1) * top5_vectors, dim=1)  # (B,D)
-
+        # 5) weighted sum trên giá trị là chính topk_vectors
+        refined = th.einsum('b n k, b k d -> b n d', weights, topk_vectors).squeeze(1)  # → [B, 1, 196608]
+        #refined.shape: torch.Size([32, 196608]) 
         return refined, weights
 
     def timestep_embedding(self, timesteps: th.LongTensor, dim: int):
@@ -117,15 +118,15 @@ class RefineNoiseNet(nn.Module):
         self,    # your RefineNoiseNet instance
         optimizer,     # optimizer for refine_net
         anchor_vector,  # Tensor, shape (B, C, H, W)
-        top5_vectors,  # Tensor, shape (B, 5, C, H, W)
-        residuals,     # Tensor, shape (B, C, H, W)  = (x0 - x0_pred),
+        topk_vectors,  # Tensor, shape (B, 5, C, H, W)
+        residuals,     # Tensor, shape (B, 1, C, H, W)  = (x0 - x0_pred),
         t_embed     # (B,E)
     ):
         """
         Performs one training step of RefineNoiseNet.
 
         Inputs:
-        top5_vectors  (B, 5, C, H, W) — the 5 nearest codebook noise maps  
+        topk_vectors  (B, 5, C, H, W) — the 5 nearest codebook noise maps  
         timesteps     (B,)            — the diffusion step index for each sample  
         residuals     (B, C, H, W)    — the true denoising residual x0 – x0_pred  
         t_embed_fn    fn to get timestep embeddings of shape (B, E)
@@ -133,28 +134,28 @@ class RefineNoiseNet(nn.Module):
         Returns:
         loss.item()  — the scalar inner‐product loss
         """
-
-        B, K, C, H, W = top5_vectors.shape
+        # print('len(topk_vectors.shape):', )
+        if len(topk_vectors.shape) == 5:
+            B, K, C, H, W = topk_vectors.shape
+        else:
+            topk_vectors = topk_vectors.unsqueeze(1)
+            B, K, C, H, W = topk_vectors.shape
         D = C*H*W
 
-        vectors_flat = top5_vectors.contiguous().view(B, K, D)    # (B,5,D)
+        vectors_flat = topk_vectors.contiguous().view(B, K, D)    # (B,5,D)
         anchor_flat  = anchor_vector.contiguous().view(B, D)      # (B,D)
-        residuals_flat = residuals.contiguous().view(B, D)
 
            # 3) Forward through RefineNoiseNet
         # v_hat: (B, D), weights: (B, 5)
         with th.cuda.amp.autocast():
             v_hat, weights = self(vectors_flat, anchor_flat, t_embed)
+            v_hat = v_hat.view(B, C, H, W)  # (B, C, H, W)
+            loss = F.mse_loss(v_hat, residuals.squeeze(1))  # L2 loss
 
-        # 4) Inner‐product loss
-        # ⟨residuals_flat, v_hat⟩ summed over D, mean over B
-        # loss = - (residuals_flat * v_hat).sum(dim=1).mean()
-        loss = F.mse_loss(v_hat, residuals_flat)  # L2 loss
-
-        # 5) Backprop
-        optimizer.zero_grad()
-        loss.backward()
-        optimizer.step()
+            # 5) Backprop
+            optimizer.zero_grad()
+            loss.backward()
+            optimizer.step()
 
         return loss.item()
     
@@ -230,7 +231,7 @@ def main():
     start_time = time.perf_counter()
     
     #---------------- REFINE NET INITIALIZE -----------------------
-    checkpoint = th.load(repo_folder_path + 'refine_net_0.pth')
+    checkpoint = th.load(repo_folder_path + 'refine_net_100.pth')
     refine_net = RefineNoiseNet(vector_dim=3*256*256, t_embed_dim=128, attn_dim=256).to(dist_util.dev())   
     refine_net.load_state_dict(checkpoint['model_state_dict'])
 

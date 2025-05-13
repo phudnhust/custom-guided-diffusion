@@ -606,7 +606,7 @@ class GaussianDiffusion:  # initialize in function create_model_and_diffusion
         # print("hq_img shape:", hq_img.shape)
         # print("out['pred_xstart'] shape:", out["pred_xstart"].shape)
         
-        # print('old noise.shape:', noise.shape)
+        # print(f'anchor noise: shape {noise.shape} mean {noise.mean()} std {noise.std()} min {noise.min()} max {noise.max()}')
 
         if noise_refine:
             def cosine_top_blend_4d(anchor, codebook, top=5, temperature=0.1):
@@ -642,16 +642,16 @@ class GaussianDiffusion:  # initialize in function create_model_and_diffusion
             # print(type(codebook))
             top_sim_idx = cosine_top_blend_4d(codebook[idxs].unsqueeze(0), 
                                               codebook,
-                                              top=6)
+                                              top=2)
             top_sim_idx = top_sim_idx[top_sim_idx != idxs]
-            top5_vectors = codebook[top_sim_idx].unsqueeze(0)  # (B=1, 5, C, H, W)
+            topk_vectors = codebook[top_sim_idx].unsqueeze(0)  # (B=1, 5, C, H, W)
             anchor_vectors = codebook[idxs]  # (B=1, C, H, W)
 
-            # print('top5_vectors.shape:', top5_vectors.shape)
+            # print('topk_vectors.shape:', topk_vectors.shape)
             # print('anchor_vectors.shape:', anchor_vectors.shape)
-            B, K, C, H, W = top5_vectors.shape
+            B, K, C, H, W = topk_vectors.shape
             D = C*H*W
-            vectors_flat = top5_vectors.contiguous().view(B, K, D).to(device)    # (B,5,D)
+            vectors_flat = topk_vectors.contiguous().view(B, K, D).to(device)    # (B,5,D)
             anchor_flat = anchor_vectors.contiguous().view(B, D).to(device)       # (B,D)
             timestep = th.tensor([t.item()]).to(device)                  # (1)
             t_embed = noise_refine_model.timestep_embedding(timestep, dim=128)                # (1, 128)
@@ -659,8 +659,11 @@ class GaussianDiffusion:  # initialize in function create_model_and_diffusion
             # 3) Forward through RefineNoiseNet
             # v_hat: (B, D), weights: (B, 5)
             with th.cuda.amp.autocast():
-                noise, _ = noise_refine_model(vectors_flat, anchor_flat, t_embed)
-                noise = noise.view(B, C, H, W).clamp(-1, 1)  # (B, C, H, W)
+                noise, weights = noise_refine_model(vectors_flat, anchor_flat, t_embed)
+                noise = noise.view(B, C, H, W)  # (B, C, H, W)
+            print('weights:', weights)
+            print(f'refine noise: shape {noise.shape} mean {noise.mean()} std {noise.std()} min {noise.min()} max {noise.max()}')
+            print()
 
         # print('new noise.shape:', noise.shape)
         # no noise when t == 0
@@ -789,7 +792,7 @@ class GaussianDiffusion:  # initialize in function create_model_and_diffusion
 
         compressed_info = None
         # to reconstruct the image from the compresed info, comment the next line to compress the image
-        # compressed_info = np.load('/mnt/HDD2/phudh/custom-guided-diffusion/compressed_info/compressed_representation_date_20250430_time_1643.npy')
+        compressed_info = np.load('/mnt/HDD2/phudh/custom-guided-diffusion/compressed_info/compressed_representation_date_20250513_time_1321.npy')
 
         compressed_representation = np.ones(self.num_timesteps).astype(np.int16) * (-1)     # to save the codebook indices of this sampling process
 
@@ -852,16 +855,16 @@ class GaussianDiffusion:  # initialize in function create_model_and_diffusion
             arr = np.array(pil_image)
             arr = arr.astype(np.float32) / 127.5 - 1
             arr = np.transpose(arr, [2, 0, 1])
-            return th.tensor(arr, device=device).unsqueeze(0).to(device)
+            return th.tensor(arr, device=device).unsqueeze(0)
         x_start = load_hq_image(hq_img_path)
 
         # --------- ADD NOISE INTO HQ IMAGE ---------
         if verbose:
             print('Step 2: Add noise into HQ image')
         batch_size = 1
-        t_batch = th.tensor([timestep] * batch_size, device=device)
+        t_tensor = th.tensor([timestep] * batch_size, device=device)
         noise = th.randn_like(x_start).to(device)
-        x_t = self.q_sample(x_start=x_start, t=t_batch, noise=noise)
+        x_t = self.q_sample(x_start=x_start, t=t_tensor, noise=noise)
 
         # --------- DENOISE TO x_(t-1) ----------
         if verbose:
@@ -869,13 +872,13 @@ class GaussianDiffusion:  # initialize in function create_model_and_diffusion
         with th.no_grad():
             out = self.ddcm_sample(
                 model,
-                x=x_t.to(device),
-                t=t_batch.to(device),
+                x=x_t,
+                t=t_tensor,
                 clip_denoised=clip_denoised,
                 denoised_fn=denoised_fn,
                 cond_fn=cond_fn,
                 model_kwargs=model_kwargs,
-                hq_img=x_start.to(device),
+                hq_img=x_start,
                 codebook=th.from_numpy(codebook).to(device),  # Sample from codebook,
             )
 
@@ -884,10 +887,10 @@ class GaussianDiffusion:  # initialize in function create_model_and_diffusion
             print('Step 4: Sample from codebook')
         retrieved_index = out["codebook_index"].cpu().numpy().item() if type(out["codebook_index"]) is th.Tensor else out["codebook_index"]
         
-        #---------- FIND TOP 5 SIMILAR VECTORS ---------
+        #---------- FIND TOP N SIMILAR VECTORS ---------
         if verbose:
-            print('Step 5: Find top 5 similar vectors')
-        def cosine_top_blend_4d(anchor, codebook, top=5, temperature=0.1):
+            print('Step 5: Find top K similar vectors')
+        def top_K_vector_indices(anchor, codebook, top=6, temperature=0.1):
             """
             anchor: (1, C, H, W)
             codebook: (K, C, H, W)
@@ -898,29 +901,13 @@ class GaussianDiffusion:  # initialize in function create_model_and_diffusion
             # print('anchor.shape:', anchor.shape)
             # print('codebook.shape:', codebook.shape)
 
-            # Flatten spatial dims
-            K, C, H, W = codebook.shape
-            anchor_flat = anchor.view(1, -1)                # (1, C*H*W)
-            codebook_flat = codebook.view(K, -1)            # (K, C*H*W)
-
-            # Normalize
-            anchor_norm = F.normalize(anchor_flat, dim=1)   # (1, D)
-            codebook_norm = F.normalize(codebook_flat, dim=1)  # (K, D)
-
-            # Cosine similarity
-            sim = th.matmul(codebook_norm, anchor_norm.T).squeeze(1)  # (K,)
-
-            # Top-5 selection
-            top_scores, top_idx = th.topk(sim, k=top)
-
-            # top_vectors = codebook[top_idx]                            # (5, C, H, W)
+            sim = th.einsum('kuwv,buwv->kb', codebook, anchor)  # (K,)
+            _, top_idx = th.topk(sim, k=top, dim=0)
 
             return top_idx
 
         # print(type(codebook))
-        top_sim_idx = cosine_top_blend_4d(th.from_numpy(np.expand_dims(codebook[retrieved_index], axis=0)), 
-                                          th.from_numpy(codebook),
-                                          top=6)
+        top_sim_idx = top_K_vector_indices(th.from_numpy(codebook[retrieved_index]).unsqueeze(0),  th.from_numpy(codebook), top=2)
         top_sim_idx = top_sim_idx[top_sim_idx != retrieved_index]
         
         # ---------- return WITH CODEBOOK ---------

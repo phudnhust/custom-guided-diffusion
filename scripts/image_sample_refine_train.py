@@ -22,6 +22,7 @@ from guided_diffusion.script_util import (
 
 from matplotlib import pyplot as plt
 from datetime import datetime
+import pandas as pd
 
 def create_argparser():
     defaults = dict(
@@ -58,25 +59,21 @@ class RefineNoiseNet(nn.Module):
         # project top-5 vectors to key space
         self.Wk = nn.Linear(vector_dim, attn_dim)
 
-    def forward(self, top5_vectors, anchor_vector, t_embed):
+
+    def forward(self, topk_vectors, anchor_vector, t_embed):
         """
-        top5_vectors: (B, 5, D)    — 5 vector giống nhất đã flatten
+        topk_vectors: (B, 5, D)    — 5 vector giống nhất đã flatten
         anchor_vector: (B, D)      — vector retrieved (flattened)
         t_embed: (B, E)        — timestep embedding
         Trả về:
           refined: (B, D)          — weighted sum của top5
           weights: (B, 5)          — softmax attention weights
         """
-        B, K, D = top5_vectors.shape
-        H = self.Wq.out_features
 
         # 1) projection key: từ (B,5,D) -> (B,5,H)
-        keys = self.Wk(top5_vectors)         # (B,5,H)
+        keys = self.Wk(topk_vectors)         # (B,5,H)
 
         # 2) projection query: từ (B,D) -> (B,H) rồi thêm chiều -> (B,1,H)
-        # query = self.Wq(anchor_vector)       # (B,H)
-        # query = query.unsqueeze(1)           # (B,1,H)
-
         # query from anchor: (B,H)
         q_anchor = self.Wq(anchor_vector)  
         # query from timestep: (B,H)
@@ -90,16 +87,12 @@ class RefineNoiseNet(nn.Module):
         dk = query.size(-1)
         scores = scores / math.sqrt(dk)
 
-        # scores = th.sum(keys * query, dim=-1) / math.sqrt(H)  # (B,5)
-
         # 4) softmax để ra weights
-        weights = F.softmax(scores, dim=-1)   # (B,5)
+        weights = F.softmax(scores, dim=-1)        # weights.shape: torch.Size([32, 1, 5])
+                                                   # topk_vectors.shape: torch.Size([32, 5, 196608])
 
-        # weights.shape: torch.Size([32, 1, 5])
-        # top5_vectors.shape: torch.Size([32, 5, 196608])
-
-        # 5) weighted sum trên giá trị là chính top5_vectors
-        refined = th.einsum('b n k, b k d -> b n d', weights, top5_vectors).squeeze(1)  # → [B, 1, 196608]
+        # 5) weighted sum trên giá trị là chính topk_vectors
+        refined = th.einsum('b n k, b k d -> b n d', weights, topk_vectors).squeeze(1)  # → [B, 1, 196608]
         #refined.shape: torch.Size([32, 196608]) 
         return refined, weights
 
@@ -124,15 +117,15 @@ class RefineNoiseNet(nn.Module):
         self,    # your RefineNoiseNet instance
         optimizer,     # optimizer for refine_net
         anchor_vector,  # Tensor, shape (B, C, H, W)
-        top5_vectors,  # Tensor, shape (B, 5, C, H, W)
-        residuals,     # Tensor, shape (B, C, H, W)  = (x0 - x0_pred),
+        topk_vectors,  # Tensor, shape (B, 5, C, H, W)
+        residuals,     # Tensor, shape (B, 1, C, H, W)  = (x0 - x0_pred),
         t_embed     # (B,E)
     ):
         """
         Performs one training step of RefineNoiseNet.
 
         Inputs:
-        top5_vectors  (B, 5, C, H, W) — the 5 nearest codebook noise maps  
+        topk_vectors  (B, 5, C, H, W) — the 5 nearest codebook noise maps  
         timesteps     (B,)            — the diffusion step index for each sample  
         residuals     (B, C, H, W)    — the true denoising residual x0 – x0_pred  
         t_embed_fn    fn to get timestep embeddings of shape (B, E)
@@ -140,27 +133,23 @@ class RefineNoiseNet(nn.Module):
         Returns:
         loss.item()  — the scalar inner‐product loss
         """
-
-        B, K, C, H, W = top5_vectors.shape
+        # print('len(topk_vectors.shape):', )
+        if len(topk_vectors.shape) == 5:
+            B, K, C, H, W = topk_vectors.shape
+        else:
+            topk_vectors = topk_vectors.unsqueeze(1)
+            B, K, C, H, W = topk_vectors.shape
         D = C*H*W
 
-        vectors_flat = top5_vectors.contiguous().view(B, K, D)    # (B,5,D)
+        vectors_flat = topk_vectors.contiguous().view(B, K, D)    # (B,5,D)
         anchor_flat  = anchor_vector.contiguous().view(B, D)      # (B,D)
-        residuals_flat = residuals.contiguous().view(B, D)
 
            # 3) Forward through RefineNoiseNet
         # v_hat: (B, D), weights: (B, 5)
         with th.cuda.amp.autocast():
             v_hat, weights = self(vectors_flat, anchor_flat, t_embed)
-
-            # 4) Inner‐product loss
-            # ⟨residuals_flat, v_hat⟩ summed over D, mean over B
-            # loss = - (residuals_flat * v_hat).sum(dim=1).mean()
-
-            # v_hat.shape: torch.Size([32, 196608])
-            # residuals_flat.shape: torch.Size([32, 196608])
-
-            loss = F.mse_loss(v_hat, residuals_flat)  # L2 loss
+            v_hat = v_hat.view(B, C, H, W)  # (B, C, H, W)
+            loss = F.mse_loss(v_hat, residuals.squeeze(1))  # L2 loss
 
             # 5) Backprop
             optimizer.zero_grad()
@@ -272,17 +261,19 @@ def main():
     hq_img_subset = all_hq_img[:int(0.7 * len(all_hq_img))]
     hq_img_batches = [hq_img_subset[i:i+batch_size] for i in range(0, len(hq_img_subset), batch_size)]
 
-    for epoch in range(0, 4000):
+    epoches_loss_list = []
+    n_epoch = 1000
+    for epoch in range(0, n_epoch):
         print('epoch: ', epoch, end=' ')
         # hq_img_batch = random.sample(hq_img_subset, batch_size)
-        epoch_loss = []
+        epoch_loss_list = []
         for hq_img_batch in hq_img_batches:
             batch_size = len(hq_img_batch)
 
             timestep = th.randint(1, 1000, (1,)).item()
 
             sample_fn = diffusion.ddcm_sample_direct
-            top5_vectors_list = []
+            topk_vectors_list = []
             residuals_list = []
             anchor_vectors_list = []
             for hq_img_path in hq_img_batch:
@@ -302,12 +293,12 @@ def main():
                     print('sample[\'top_sim_idx\']', sample['top_sim_idx'])
                     print('-'*20); print()
 
-                top5_vectors_list.append(th.from_numpy(_codebooks[timestep][sample['top_sim_idx']]))
+                topk_vectors_list.append(th.from_numpy(_codebooks[timestep][sample['top_sim_idx']]))
                 residuals_list.append(sample['residual'])
                 anchor_vectors_list.append(th.from_numpy(_codebooks[timestep][sample['retrieved_index']]).to(dist_util.dev()))
 
 
-            top5_vectors = th.stack(top5_vectors_list, dim=0).to(dist_util.dev())
+            topk_vectors = th.stack(topk_vectors_list, dim=0).to(dist_util.dev())
             residuals = th.stack(residuals_list, dim=0).to(dist_util.dev())
             anchor_vector = th.stack(anchor_vectors_list, dim=0).to(dist_util.dev())
 
@@ -317,18 +308,24 @@ def main():
             # print('anchor_vector.shape:', anchor_vector.shape)  # 
 
             # if verbose:
-                # print('top5_vectors.shape:', top5_vectors.shape)  # torch.Size([16, 5, 3, 256, 256])
+                # print('topk_vectors.shape:', topk_vectors.shape)  # torch.Size([16, 5, 3, 256, 256])
                 # print('residuals.shape:', residuals.shape)  # torch.Size([16, 1, 3, 256, 256])
                 # print('timesteps.shape:', timesteps.shape)  #  torch.Size([16])
 
-            loss = refine_net.train_refine_step(optimizer=optimizer, top5_vectors=top5_vectors, anchor_vector=anchor_vector, residuals=residuals, t_embed=t_embed)
-            epoch_loss.append(loss)
+            loss = refine_net.train_refine_step(optimizer=optimizer, topk_vectors=topk_vectors, anchor_vector=anchor_vector, residuals=residuals, t_embed=t_embed)
+            epoch_loss_list.append(loss)
         
-        if epoch % 500 == 0 or epoch == 3999:
+        if (epoch > 0 and epoch % 100 == 0) or epoch == n_epoch-1:
             refine_net.save_checkpoint(optimizer, epoch, path=repo_folder_path + f'refine_net_{epoch}.pth')
-        print('epoch_loss:', np.mean(epoch_loss))
+        epoch_loss = np.mean(epoch_loss_list)
+        print('epoch_loss:', epoch_loss)
+        epoches_loss_list.append(np.mean(epoch_loss))
         
-
+    df = pd.DataFrame({
+        'epoch': range(len(epoches_loss_list)),
+        'loss': epoches_loss_list
+    })
+    df.to_csv('learning_curve_' + datetime.now().strftime("_date_%Y%m%d_time_%H%M") +'.csv', index=False)
 
     dist.barrier()
     logger.log("sampling complete")

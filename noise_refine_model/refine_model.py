@@ -37,8 +37,8 @@ def batch_top5_similar(queries, codebook):
     codebook = F.normalize(codebook, dim=1)
     sim = torch.matmul(queries, codebook.T)  # (B, K)
     top5_scores, top5_indices = torch.topk(sim, k=5, dim=1)
-    top5_vectors = codebook[top5_indices]  # (B, 5, D)
-    return top5_vectors, top5_indices
+    topk_vectors = codebook[top5_indices]  # (B, 5, D)
+    return topk_vectors, top5_indices
 
 # --------- DDCM Reverse Step Placeholder ---------
 class DummyDDCM(nn.Module):
@@ -67,10 +67,10 @@ def train_refiner(dataloader, ddcm_model, codebooks, refine_net, optimizer, alph
         anchors = torch.argmin(dists, dim=1)
         anchor_vecs = codebook_t[anchors]  # (B, D)
 
-        top5_vectors, _ = batch_top5_similar(anchor_vecs, codebook_t)
+        topk_vectors, _ = batch_top5_similar(anchor_vecs, codebook_t)
         t_embed = timestep_embedding(t, t_embed_dim)
 
-        v_hat, _ = refine_net(top5_vectors, t_embed)
+        v_hat, _ = refine_net(topk_vectors, t_embed)
         x_t_flat = x_t.view(B, -1)
         x0_t = ddcm_model.reverse_step(x_t_flat, v_hat, t).view(B, C, H, W)
 
