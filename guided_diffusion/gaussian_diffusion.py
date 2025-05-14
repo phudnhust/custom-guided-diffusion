@@ -609,61 +609,87 @@ class GaussianDiffusion:  # initialize in function create_model_and_diffusion
         # print(f'anchor noise: shape {noise.shape} mean {noise.mean()} std {noise.std()} min {noise.min()} max {noise.max()}')
 
         if noise_refine:
-            def cosine_top_blend_4d(anchor, codebook, top=5, temperature=0.1):
-                """
-                anchor: (1, C, H, W)
-                codebook: (K, C, H, W)
-                Returns:
-                    refined: (1, C, H, W)
-                """
-                import torch.nn.functional as F
-                # print('anchor.shape:', anchor.shape)
-                # print('codebook.shape:', codebook.shape)
+            if noise_refine_model is not None: # refine noise with model
+                def cosine_top_blend_4d(anchor, codebook, top=5, temperature=0.1):
+                    """
+                    anchor: (1, C, H, W)
+                    codebook: (K, C, H, W)
+                    Returns:
+                        refined: (1, C, H, W)
+                    """
+                    import torch.nn.functional as F
+                    # print('anchor.shape:', anchor.shape)
+                    # print('codebook.shape:', codebook.shape)
 
-                # Flatten spatial dims
-                K, C, H, W = codebook.shape
-                anchor_flat = anchor.view(1, -1)                # (1, C*H*W)
-                codebook_flat = codebook.view(K, -1)            # (K, C*H*W)
+                    # Flatten spatial dims
+                    K, C, H, W = codebook.shape
+                   
+                    # Normalize
+                    anchor_norm_flat = F.normalize(anchor.view(1, -1), dim=1)   # (1, D)
+                    codebook_norm_flat = F.normalize(codebook.view(K, -1) , dim=1)  # (K, D)
 
-                # Normalize
-                anchor_norm = F.normalize(anchor_flat, dim=1)   # (1, D)
-                codebook_norm = F.normalize(codebook_flat, dim=1)  # (K, D)
+                    # Cosine similarity
+                    sim = th.matmul(codebook_norm_flat, anchor_norm_flat.T).squeeze(1)  # (K,)
 
-                # Cosine similarity
-                sim = th.matmul(codebook_norm, anchor_norm.T).squeeze(1)  # (K,)
+                    # Top-5 selection
+                    top_scores, top_idx = th.topk(sim, k=top, largest=True)
 
-                # Top-5 selection
-                top_scores, top_idx = th.topk(sim, k=top)
+                    # top_vectors = codebook[top_idx]                            # (5, C, H, W)
 
-                # top_vectors = codebook[top_idx]                            # (5, C, H, W)
+                    return top_idx
 
-                return top_idx
+                # print(type(codebook))
+                top_sim_idx = cosine_top_blend_4d(codebook[idxs].unsqueeze(0), codebook,top=5)
+                topk_vectors = codebook[top_sim_idx].unsqueeze(0)  # (B=1, 5, C, H, W)
+                anchor_vectors = codebook[idxs]  # (B=1, C, H, W)
 
-            # print(type(codebook))
-            top_sim_idx = cosine_top_blend_4d(codebook[idxs].unsqueeze(0), 
-                                              codebook,
-                                              top=2)
-            top_sim_idx = top_sim_idx[top_sim_idx != idxs]
-            topk_vectors = codebook[top_sim_idx].unsqueeze(0)  # (B=1, 5, C, H, W)
-            anchor_vectors = codebook[idxs]  # (B=1, C, H, W)
+                # print('topk_vectors.shape:', topk_vectors.shape)
+                # print('anchor_vectors.shape:', anchor_vectors.shape)
+                B, K, C, H, W = topk_vectors.shape
+                D = C*H*W
+                vectors_flat = topk_vectors.contiguous().view(B, K, D).to(device)    # (B,5,D)
+                anchor_flat = anchor_vectors.contiguous().view(B, D).to(device)       # (B,D)
+                timestep = th.tensor([t.item()]).to(device)                  # (1)
+                t_embed = noise_refine_model.timestep_embedding(timestep, dim=128)                # (1, 128)
 
-            # print('topk_vectors.shape:', topk_vectors.shape)
-            # print('anchor_vectors.shape:', anchor_vectors.shape)
-            B, K, C, H, W = topk_vectors.shape
-            D = C*H*W
-            vectors_flat = topk_vectors.contiguous().view(B, K, D).to(device)    # (B,5,D)
-            anchor_flat = anchor_vectors.contiguous().view(B, D).to(device)       # (B,D)
-            timestep = th.tensor([t.item()]).to(device)                  # (1)
-            t_embed = noise_refine_model.timestep_embedding(timestep, dim=128)                # (1, 128)
+                # 3) Forward through RefineNoiseNet
+                # v_hat: (B, D), weights: (B, 5)
+                with th.cuda.amp.autocast():
+                    noise, weights = noise_refine_model(vectors_flat, anchor_flat, t_embed)
+                    noise = noise.view(B, C, H, W)  # (B, C, H, W)
+                print('weights:', weights)
+                print(f'refine noise: shape {noise.shape} mean {noise.mean()} std {noise.std()} min {noise.min()} max {noise.max()}')
+                print()
+            else: # pure softmax attention
 
-            # 3) Forward through RefineNoiseNet
-            # v_hat: (B, D), weights: (B, 5)
-            with th.cuda.amp.autocast():
-                noise, weights = noise_refine_model(vectors_flat, anchor_flat, t_embed)
-                noise = noise.view(B, C, H, W)  # (B, C, H, W)
-            print('weights:', weights)
-            print(f'refine noise: shape {noise.shape} mean {noise.mean()} std {noise.std()} min {noise.min()} max {noise.max()}')
-            print()
+                # codebook: (K, C, H, W)
+                # noise: (C, H, W)
+
+                anchor_noise_flat_norm = th.nn.functional.normalize(noise.view(1, -1), dim=1)
+                codebook_flat_norm     = th.nn.functional.normalize(codebook.view(codebook.shape[0], -1), dim=1)
+
+                cos_sim = th.matmul(anchor_noise_flat_norm, codebook_flat_norm.T).squeeze(0)
+
+                sims_value, sims_index = th.topk(cos_sim, k=5, largest=True)
+                sims_value = sims_value.view(-1)
+                sims_index = sims_index.view(-1)
+                print('idxs: ', idxs)
+                
+                # ------- remove the anchor noise (z_t) from top k ---------
+                # idxs_index = th.nonzero(sims_index == idxs)
+                # print('idxs_index: ', idxs_index)
+                # sims_value = th.cat((sims_value[:idxs_index], sims_value[idxs_index+1:]))
+                # sims_index = th.cat((sims_index[:idxs_index], sims_index[idxs_index+1:]))
+
+                print('sims_value: ', sims_value)
+                print('sims_index: ', sims_index)
+
+                topk_vectors = codebook[sims_index].squeeze(1)                                 # (topk, C, H, W)
+                weights = th.nn.functional.softmax(sims_value / 0.1, dim=0)      # (topk)
+                print('weights: ', weights)
+                print()
+                noise = th.sum(weights[:, None, None, None] * topk_vectors, dim=0, keepdim=True)    # (1, C, H, W)
+
 
         # print('new noise.shape:', noise.shape)
         # no noise when t == 0
@@ -783,8 +809,8 @@ class GaussianDiffusion:  # initialize in function create_model_and_diffusion
 
         # Initial noise: sampled from codebook
         img = th.from_numpy(codebooks[self.num_timesteps][0]).to(device).type(th.float32).unsqueeze(0)  # Sample from codebook
-        print('img.shape:', img.shape)
-        print('shape:', shape)
+        # print('img.shape:', img.shape)
+        # print('shape:', shape)
 
         if progress:
             from tqdm.auto import tqdm
@@ -890,7 +916,7 @@ class GaussianDiffusion:  # initialize in function create_model_and_diffusion
         #---------- FIND TOP N SIMILAR VECTORS ---------
         if verbose:
             print('Step 5: Find top K similar vectors')
-        def top_K_vector_indices(anchor, codebook, top=6, temperature=0.1):
+        def top_K_vector_indices(anchor, codebook, top=5, temperature=0.1):
             """
             anchor: (1, C, H, W)
             codebook: (K, C, H, W)
@@ -901,14 +927,17 @@ class GaussianDiffusion:  # initialize in function create_model_and_diffusion
             # print('anchor.shape:', anchor.shape)
             # print('codebook.shape:', codebook.shape)
 
-            sim = th.einsum('kuwv,buwv->kb', codebook, anchor)  # (K,)
-            _, top_idx = th.topk(sim, k=top, dim=0)
+            anchor_noise_flat_norm = th.nn.functional.normalize(anchor.view(1, -1), dim=1)
+            codebook_flat_norm     = th.nn.functional.normalize(codebook.view(codebook.shape[0], -1), dim=1)
 
+            cos_sim = th.matmul(anchor_noise_flat_norm, codebook_flat_norm.T).squeeze(0)
+
+            _, top_idx = th.topk(cos_sim, k=top, largest=True)
             return top_idx
 
         # print(type(codebook))
-        top_sim_idx = top_K_vector_indices(th.from_numpy(codebook[retrieved_index]).unsqueeze(0),  th.from_numpy(codebook), top=2)
-        top_sim_idx = top_sim_idx[top_sim_idx != retrieved_index]
+        top_sim_idx = top_K_vector_indices(th.from_numpy(codebook[retrieved_index]).unsqueeze(0),  th.from_numpy(codebook), top=5)
+        # top_sim_idx = top_sim_idx[top_sim_idx != retrieved_index]
         
         # ---------- return WITH CODEBOOK ---------
         # print('retrieved_index:', retrieved_index)

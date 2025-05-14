@@ -43,6 +43,7 @@ from torch.utils.data import DataLoader
 import math
 import random
 
+
 # --------- RefineNoiseNet Definition ---------
 class RefineNoiseNet(nn.Module):
     def __init__(self, vector_dim, t_embed_dim, attn_dim):
@@ -88,8 +89,9 @@ class RefineNoiseNet(nn.Module):
         scores = scores / math.sqrt(dk)
 
         # 4) softmax để ra weights
-        weights = F.softmax(scores, dim=-1)        # weights.shape: torch.Size([32, 1, 5])
+        weights = F.softmax(scores / 0.1, dim=-1)        # weights.shape: torch.Size([32, 1, 5])
                                                    # topk_vectors.shape: torch.Size([32, 5, 196608])
+        # print('weights: ', weights)
 
         # 5) weighted sum trên giá trị là chính topk_vectors
         refined = th.einsum('b n k, b k d -> b n d', weights, topk_vectors).squeeze(1)  # → [B, 1, 196608]
@@ -240,8 +242,8 @@ def main():
     refine_net = RefineNoiseNet(vector_dim=3*256*256, t_embed_dim=128, attn_dim=256).to(dist_util.dev())
     optimizer = th.optim.AdamW(
         refine_net.parameters(),
-        lr=1e-6,           # a good starting point
-        weight_decay=1e-2  # small amount of L2 regularization
+        lr=1e-7,           # a good starting point
+        # weight_decay=1e-2  # small amount of L2 regularization
     )
 
     # checkpoint = th.load(repo_folder_path + 'refine_net_950.pth')

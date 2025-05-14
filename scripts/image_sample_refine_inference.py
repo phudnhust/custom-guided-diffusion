@@ -89,8 +89,9 @@ class RefineNoiseNet(nn.Module):
         scores = scores / math.sqrt(dk)
 
         # 4) softmax để ra weights
-        weights = F.softmax(scores, dim=-1)        # weights.shape: torch.Size([32, 1, 5])
+        weights = F.softmax(scores / 0.1, dim=-1)        # weights.shape: torch.Size([32, 1, 5])
                                                    # topk_vectors.shape: torch.Size([32, 5, 196608])
+        # print('weights: ', weights)
 
         # 5) weighted sum trên giá trị là chính topk_vectors
         refined = th.einsum('b n k, b k d -> b n d', weights, topk_vectors).squeeze(1)  # → [B, 1, 196608]
@@ -174,7 +175,6 @@ class RefineNoiseNet(nn.Module):
         print(f"Saved checkpoint: {path}")
 
 
-
 def main():
     start_time = time.perf_counter()
     args = create_argparser().parse_args()
@@ -231,7 +231,7 @@ def main():
     start_time = time.perf_counter()
     
     #---------------- REFINE NET INITIALIZE -----------------------
-    checkpoint = th.load(repo_folder_path + 'refine_net_100.pth')
+    checkpoint = th.load(repo_folder_path + 'lr_1e-7_no_l2_reg_refine_net_200.pth')
     refine_net = RefineNoiseNet(vector_dim=3*256*256, t_embed_dim=128, attn_dim=256).to(dist_util.dev())   
     refine_net.load_state_dict(checkpoint['model_state_dict'])
 
@@ -257,8 +257,11 @@ def main():
             # hq_img_path='/mnt/HDD2/phudh/custom-guided-diffusion/hq_img/CelebDataProcessed/Barack Obama/4.jpg',
             # hq_img_path='/mnt/HDD2/phudh/custom-guided-diffusion/hq_img/CelebDataProcessed/Jennifer Lopez/8.jpg',
             hq_img_path='/mnt/HDD2/phudh/custom-guided-diffusion/hq_img/CelebDataProcessed/Leonardo DiCaprio/20.jpg',
+            # noise_refine=True,
+            # noise_refine_model=refine_net,
             noise_refine=True,
-            noise_refine_model=refine_net
+            noise_refine_model=None
+
         )
 
         sample = ((sample + 1) * 127.5).clamp(0, 255).to(th.uint8)
