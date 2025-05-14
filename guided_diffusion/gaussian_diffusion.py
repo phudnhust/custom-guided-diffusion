@@ -642,6 +642,8 @@ class GaussianDiffusion:  # initialize in function create_model_and_diffusion
                 top_sim_idx = cosine_top_blend_4d(codebook[idxs].unsqueeze(0), codebook,top=5)
                 topk_vectors = codebook[top_sim_idx].unsqueeze(0)  # (B=1, 5, C, H, W)
                 anchor_vectors = codebook[idxs]  # (B=1, C, H, W)
+                print('idxs: ', idxs)
+                print('top_sim_idx: ', top_sim_idx)
 
                 # print('topk_vectors.shape:', topk_vectors.shape)
                 # print('anchor_vectors.shape:', anchor_vectors.shape)
