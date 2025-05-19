@@ -37,6 +37,7 @@ def create_argparser():
     return parser
 
 from noise_refine_model.cross_attention_based import RefineNoiseNet
+# from noise_refine_model.mlp_based import RefineNoiseNet
 
 
 def main():
@@ -95,7 +96,7 @@ def main():
     start_time = time.perf_counter()
     
     #---------------- REFINE NET INITIALIZE -----------------------
-    checkpoint = th.load(repo_folder_path + 'lr_1e-7_no_l2_reg_refine_net_200.pth')
+    checkpoint = th.load(repo_folder_path + 'cross-attn_new_loss_refine_net_400.pth')
     refine_net = RefineNoiseNet(vector_dim=3*256*256, t_embed_dim=128, attn_dim=256).to(dist_util.dev())   
     refine_net.load_state_dict(checkpoint['model_state_dict'])
 

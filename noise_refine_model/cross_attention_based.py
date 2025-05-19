@@ -56,9 +56,18 @@ class RefineNoiseNet(nn.Module):
                                                    # topk_vectors.shape: torch.Size([32, 5, 196608])
         # print('weights: ', weights)
 
-        # 5) weighted sum trên giá trị là chính topk_vectors
-        refined = th.einsum('b n k, b k d -> b n d', weights, topk_vectors).squeeze(1)  # → [B, 1, 196608]
-        #refined.shape: torch.Size([32, 196608]) 
+        anchor_vector_expanded = anchor_vector.unsqueeze(1)  # (B, 1, D)
+        diff = topk_vectors - anchor_vector_expanded     # (B, 5, D)
+        weight_transposed = weights.view(weights.shape[0], weights.shape[2], weights.shape[1])      # (B, 5, 1)
+
+        weighted_sum = (weight_transposed * diff).sum(dim=1)  # (B, D)
+
+        # print('weight_expanded.shape: ', weight_expanded.shape)
+        # print('diff.shape: ', diff.shape)
+        # print('weighted_sum.shape: ', weighted_sum.shape)
+        # print('anchor_vector.shape: ', anchor_vector.shape)
+        refined = anchor_vector + weighted_sum  # (B, D)
+
         return refined, weights
 
     def timestep_embedding(self, timesteps: th.LongTensor, dim: int):

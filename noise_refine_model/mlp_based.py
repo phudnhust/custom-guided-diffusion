@@ -30,7 +30,15 @@ class RefineNoiseNet(nn.Module):
 
         scores = self.score_mlp(x).squeeze(-1)
         weights = F.softmax(scores / 0.1, dim=-1) # (B, 5)
-        refined = th.sum(weights.unsqueeze(-1) * topk_vectors, dim=1) # (B, D)
+
+        # # Step 1: Expand anchor to match shape of others
+        anchor_vector_expanded = anchor_vector.unsqueeze(1)  # (B, 1, D)
+        diff = topk_vectors - anchor_vector_expanded     # (B, 5, D)
+        weight_expanded = weights.unsqueeze(-1)      # (B, 5, 1)
+
+        weighted_sum = (weight_expanded * diff).sum(dim=1)  # (B, D)
+        refined = anchor_vector + weighted_sum  # (B, D)
+        
         return refined, weights
 
     def timestep_embedding(self, timesteps: th.LongTensor, dim: int):
