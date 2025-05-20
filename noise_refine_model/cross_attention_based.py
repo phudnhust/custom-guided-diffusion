@@ -9,19 +9,25 @@ import math
 
 # --------- RefineNoiseNet Definition ---------
 class RefineNoiseNet(nn.Module):
-    def __init__(self, vector_dim, t_embed_dim, attn_dim):
+    def __init__(self, vector_dim=3*256*256, t_embed_dim=128, attn_dim=128, num_heads=8):
         """
         vector_dim:   D = C*H*W, flattened codebook‐vector size
         t_embed_dim:  E, timestep embedding size
         attn_dim:     H, hidden dim for attention
         """
-        super().__init__()
-        # project anchor_vector to query space
+        super().__init__()                       # ← Must be first
+
+        # project D→H
         self.Wq = nn.Linear(vector_dim, attn_dim)
-        # project timestep embedding to query space
-        self.Wt = nn.Linear(t_embed_dim, attn_dim)
-        # project top-5 vectors to key space
         self.Wk = nn.Linear(vector_dim, attn_dim)
+        self.Wv = nn.Linear(vector_dim, attn_dim)
+        self.Wt = nn.Linear(t_embed_dim, attn_dim)
+        # attention in H-space
+        self.mha = nn.MultiheadAttention(embed_dim=attn_dim,
+                                         num_heads=num_heads,
+                                         batch_first=True)
+        # project back H→D
+        self.proj_out = nn.Linear(attn_dim, vector_dim)
 
 
     def forward(self, topk_vectors, anchor_vector, t_embed):
@@ -30,45 +36,20 @@ class RefineNoiseNet(nn.Module):
         anchor_vector: (B, D)      — vector retrieved (flattened)
         t_embed: (B, E)        — timestep embedding
         Trả về:
-          refined: (B, D)          — weighted sum của top5
           weights: (B, 5)          — softmax attention weights
         """
+        # top5: (B,5,D) → keys/values in H
+        K = self.Wk(topk_vectors)               # (B,5,H)
+        V = self.Wv(topk_vectors)               # (B,5,H)
+        # anchor & time → query in H
+        Q = self.Wq(anchor_vector) + self.Wt(t_embed)  # (B,H)
+        Q = Q.unsqueeze(1)              # (B,1,H)
 
-        # 1) projection key: từ (B,5,D) -> (B,5,H)
-        keys = self.Wk(topk_vectors)         # (B,5,H)
-
-        # 2) projection query: từ (B,D) -> (B,H) rồi thêm chiều -> (B,1,H)
-        # query from anchor: (B,H)
-        q_anchor = self.Wq(anchor_vector)  
-        # query from timestep: (B,H)
-        q_time   = self.Wt(t_embed)
-        # combined query: (B,1,H)
-        query = (q_anchor + q_time).unsqueeze(1)
-
-        # 3) tính score dot-product và scale
-        #    scores[b,j] = <query[b], keys[b,j]> / sqrt(H)
-        scores = th.matmul(query, keys.transpose(1, 2))
-        dk = query.size(-1)
-        scores = scores / math.sqrt(dk)
-
-        # 4) softmax để ra weights
-        weights = F.softmax(scores / 0.1, dim=-1)        # weights.shape: torch.Size([32, 1, 5])
-                                                   # topk_vectors.shape: torch.Size([32, 5, 196608])
-        # print('weights: ', weights)
-
-        anchor_vector_expanded = anchor_vector.unsqueeze(1)  # (B, 1, D)
-        diff = topk_vectors - anchor_vector_expanded     # (B, 5, D)
-        weight_transposed = weights.view(weights.shape[0], weights.shape[2], weights.shape[1])      # (B, 5, 1)
-
-        weighted_sum = (weight_transposed * diff).sum(dim=1)  # (B, D)
-
-        # print('weight_expanded.shape: ', weight_expanded.shape)
-        # print('diff.shape: ', diff.shape)
-        # print('weighted_sum.shape: ', weighted_sum.shape)
-        # print('anchor_vector.shape: ', anchor_vector.shape)
-        refined = anchor_vector + weighted_sum  # (B, D)
-
-        return refined, weights
+        out, attn = self.mha(Q, K, V)   # out: (B,1,H)
+        # print('out.shape: ', out.shape)
+        out = out.squeeze(1)            # (B,H)
+        refined = self.proj_out(out)    # (B,D)
+        return refined, attn.squeeze(1) # (B,5)
 
     def timestep_embedding(self, timesteps: th.LongTensor, dim: int):
         """

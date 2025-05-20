@@ -104,7 +104,7 @@ def main():
         model_kwargs["y"] = classes
     
     #---------------- REFINE NET INITIALIZE -----------------------
-    refine_net = RefineNoiseNet(vector_dim=3*256*256, t_embed_dim=128, attn_dim=256).to(dist_util.dev())
+    refine_net = RefineNoiseNet().to(dist_util.dev())
     optimizer = th.optim.AdamW(
         refine_net.parameters(),
         lr=1e-7,           # a good starting point

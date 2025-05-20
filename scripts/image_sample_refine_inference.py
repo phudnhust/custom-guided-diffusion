@@ -96,8 +96,8 @@ def main():
     start_time = time.perf_counter()
     
     #---------------- REFINE NET INITIALIZE -----------------------
-    checkpoint = th.load(repo_folder_path + 'cross-attn_new_loss_refine_net_400.pth')
-    refine_net = RefineNoiseNet(vector_dim=3*256*256, t_embed_dim=128, attn_dim=256).to(dist_util.dev())   
+    checkpoint = th.load(repo_folder_path + 'refine_net_300.pth')
+    refine_net = RefineNoiseNet().to(dist_util.dev())   
     refine_net.load_state_dict(checkpoint['model_state_dict'])
 
     while len(all_images) * args.batch_size < args.num_samples:
@@ -117,13 +117,20 @@ def main():
             clip_denoised=args.clip_denoised,
             model_kwargs=model_kwargs,
             codebooks=_codebooks,
-            # hq_img_path="/mnt/HDD2/phudh/custom-guided-diffusion/hq_img/academic_gown/000.jpg",
-            # hq_img_path="/mnt/HDD2/phudh/custom-guided-diffusion/hq_img/academic_gown/004.jpg",
-            # hq_img_path='/mnt/HDD2/phudh/custom-guided-diffusion/hq_img/CelebDataProcessed/Barack Obama/4.jpg',
-            hq_img_path='/mnt/HDD2/phudh/custom-guided-diffusion/hq_img/CelebDataProcessed/Jennifer Lopez/8.jpg',
+            # received_indices=np.load('/mnt/HDD2/phudh/custom-guided-diffusion/compressed_info/compressed_representation_date_20250520_time_0816.npy'),
+            received_indices=None,
+
+
+            # hq_img_path="/mnt/HDD2/phudh/custom-guided-diffusion/hq_img/imagenet-256/academic_gown/000.jpg",
+            hq_img_path="/mnt/HDD2/phudh/custom-guided-diffusion/hq_img/imagenet-256/academic_gown/004.jpg",
+
+            # hq_img_path='/mnt/HDD2/phudh/custom-guided-diffusion/hq_img/CelebDataProcessed/Jennifer Lopez/8.jpg',
             # hq_img_path='/mnt/HDD2/phudh/custom-guided-diffusion/hq_img/CelebDataProcessed/Leonardo DiCaprio/20.jpg',
-            noise_refine=True,
-            noise_refine_model=refine_net
+
+            noise_refine=False,
+            # noise_refine_model=refine_net
+            noise_refine_model=None
+
             # noise_refine=False
 
         )

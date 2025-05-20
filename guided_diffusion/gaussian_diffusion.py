@@ -547,7 +547,7 @@ class GaussianDiffusion:  # initialize in function create_model_and_diffusion
         model_kwargs=None,
         hq_img=None,       # high quality image
         codebook=None,
-        compressed_info=None,
+        received_indices=None,
         noise_refine=False,  # if True, blend the noise with the codebook
         noise_refine_model=None,
         device=None,
@@ -593,12 +593,12 @@ class GaussianDiffusion:  # initialize in function create_model_and_diffusion
 
         codebook = codebook.to(out["pred_xstart"].dtype)
 
-        if compressed_info is None:
+        if received_indices is None:
             sims = th.einsum('kuwv,buwv->kb', codebook, hq_img - out["pred_xstart"])
             idxs = sims.argmax(0)
             noise = codebook[idxs]
         else:
-            idxs = compressed_info[t.item()]
+            idxs = received_indices[t.item()]
             noise = codebook[idxs]
 
         # print("codebook shape:", codebook.shape)
@@ -642,6 +642,7 @@ class GaussianDiffusion:  # initialize in function create_model_and_diffusion
                 top_sim_idx = cosine_top_blend_4d(codebook[idxs].unsqueeze(0), codebook,top=5)
                 topk_vectors = codebook[top_sim_idx].unsqueeze(0)  # (B=1, 5, C, H, W)
                 anchor_vectors = codebook[idxs]  # (B=1, C, H, W)
+                print('Learnable refine network')
                 print('idxs: ', idxs)
                 print('top_sim_idx: ', top_sim_idx)
 
@@ -672,9 +673,10 @@ class GaussianDiffusion:  # initialize in function create_model_and_diffusion
 
                 cos_sim = th.matmul(anchor_noise_flat_norm, codebook_flat_norm.T).squeeze(0)
 
-                sims_value, sims_index = th.topk(cos_sim, k=5, largest=True)
+                sims_value, sims_index = th.topk(cos_sim, k=10, largest=True)
                 sims_value = sims_value.view(-1)
                 sims_index = sims_index.view(-1)
+                print('Non-learnable softmax attention')
                 print('idxs: ', idxs)
                 
                 # ------- remove the anchor noise (z_t) from top k ---------
@@ -689,8 +691,10 @@ class GaussianDiffusion:  # initialize in function create_model_and_diffusion
                 topk_vectors = codebook[sims_index].squeeze(1)                                 # (topk, C, H, W)
                 weights = th.nn.functional.softmax(sims_value / 0.1, dim=0)      # (topk)
                 print('weights: ', weights)
-                print()
+                
                 noise = th.sum(weights[:, None, None, None] * topk_vectors, dim=0, keepdim=True)    # (1, C, H, W)
+                print(f'refine noise: shape {noise.shape} mean {noise.mean()} std {noise.std()} min {noise.min()} max {noise.max()}')
+                print()
 
 
         # print('new noise.shape:', noise.shape)
@@ -718,6 +722,7 @@ class GaussianDiffusion:  # initialize in function create_model_and_diffusion
         device=None,
         progress=False,
         codebooks=None,
+        received_indices=None,
         hq_img_path=None,         # high quality image path
         noise_refine=False,         # if True, blend the noise with the codebook
         noise_refine_model=None
@@ -742,6 +747,20 @@ class GaussianDiffusion:  # initialize in function create_model_and_diffusion
         :param codebooks: the codebooks to sample from.
         :return: a non-differentiable batch of samples.
         """
+        print()
+        if (received_indices is None):
+            print('>>>>>>>>> Sample at transmitter\'s side, select the codebook indices again <<<<<<<<')
+        else:
+            print('>>>>>>>>> Sample at receiver\'s side, load the codebook indicies from file <<<<<<<<')
+
+        if (noise_refine is None):
+            print('>>>>>>>>> Sample with Original DDCM <<<<<<<<')
+        elif (noise_refine_model is None):
+            print('>>>>>>>>> Refine noise with non-learnable softmax attention <<<<<<<<')
+        else:
+            print('>>>>>>>>> Refine noise with learnable network <<<<<<<<')
+        print()
+
         final = None
         for sample in self.ddcm_sample_loop_progressive(
             model,
@@ -754,6 +773,7 @@ class GaussianDiffusion:  # initialize in function create_model_and_diffusion
             device=device,
             progress=progress,
             codebooks=codebooks,
+            received_indices=received_indices,
             hq_img_path=hq_img_path,
             noise_refine=noise_refine,
             noise_refine_model=noise_refine_model
@@ -774,6 +794,7 @@ class GaussianDiffusion:  # initialize in function create_model_and_diffusion
         device=None,
         progress=False,
         codebooks=None,            # codebooks is already load from image_sample.py
+        received_indices=None,
         hq_img_path=None,         # high quality image path
         noise_refine=False,         # if True, blend the noise with the codebook
         noise_refine_model=None
@@ -818,10 +839,6 @@ class GaussianDiffusion:  # initialize in function create_model_and_diffusion
             from tqdm.auto import tqdm
             indices = tqdm(indices)
 
-        compressed_info = None
-        # to reconstruct the image from the compresed info, comment the next line to compress the image
-        compressed_info = np.load('/mnt/HDD2/phudh/custom-guided-diffusion/compressed_info/compressed_representation_date_20250513_time_1321.npy')
-
         compressed_representation = np.ones(self.num_timesteps).astype(np.int16) * (-1)     # to save the codebook indices of this sampling process
 
         for i in indices:
@@ -839,7 +856,7 @@ class GaussianDiffusion:  # initialize in function create_model_and_diffusion
                     model_kwargs=model_kwargs,
                     hq_img=hq_img,
                     codebook=th.from_numpy(codebooks[i]).to(device),  # Sample from codebook,
-                    compressed_info=compressed_info,
+                    received_indices=received_indices,
                     noise_refine=noise_refine,
                     noise_refine_model=noise_refine_model,
                     device=device
