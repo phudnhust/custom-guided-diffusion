@@ -673,7 +673,7 @@ class GaussianDiffusion:  # initialize in function create_model_and_diffusion
 
                 cos_sim = th.matmul(anchor_noise_flat_norm, codebook_flat_norm.T).squeeze(0)
 
-                sims_value, sims_index = th.topk(cos_sim, k=10, largest=True)
+                sims_value, sims_index = th.topk(cos_sim, k=5, largest=True)
                 sims_value = sims_value.view(-1)
                 sims_index = sims_index.view(-1)
                 print('Non-learnable softmax attention')
@@ -753,12 +753,16 @@ class GaussianDiffusion:  # initialize in function create_model_and_diffusion
         else:
             print('>>>>>>>>> Sample at receiver\'s side, load the codebook indicies from file <<<<<<<<')
 
-        if (noise_refine is None):
+        if noise_refine == False:
             print('>>>>>>>>> Sample with Original DDCM <<<<<<<<')
-        elif (noise_refine_model is None):
-            print('>>>>>>>>> Refine noise with non-learnable softmax attention <<<<<<<<')
         else:
-            print('>>>>>>>>> Refine noise with learnable network <<<<<<<<')
+            if (received_indices is None):
+                raise NotImplementedError("Noise refine applied only at receiver's side---> Please feed the received indices")
+
+            if (noise_refine_model is None):
+                print('>>>>>>>>> Refine noise with non-learnable softmax attention <<<<<<<<')
+            else:
+                print('>>>>>>>>> Refine noise with learnable network <<<<<<<<')
         print()
 
         final = None

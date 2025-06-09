@@ -18,10 +18,9 @@ class RefineNoiseNet(nn.Module):
         super().__init__()                       # ← Must be first
 
         # project D→H
-        self.Wq = nn.Linear(vector_dim, attn_dim)
+        self.Wq = nn.Linear(vector_dim + t_embed_dim, attn_dim)
         self.Wk = nn.Linear(vector_dim, attn_dim)
         self.Wv = nn.Linear(vector_dim, attn_dim)
-        self.Wt = nn.Linear(t_embed_dim, attn_dim)
         # attention in H-space
         self.mha = nn.MultiheadAttention(embed_dim=attn_dim,
                                          num_heads=num_heads,
@@ -42,7 +41,7 @@ class RefineNoiseNet(nn.Module):
         K = self.Wk(topk_vectors)               # (B,5,H)
         V = self.Wv(topk_vectors)               # (B,5,H)
         # anchor & time → query in H
-        Q = self.Wq(anchor_vector) + self.Wt(t_embed)  # (B,H)
+        Q = self.Wq(th.cat([anchor_vector, t_embed], dim=-1))  # (B,H)
         Q = Q.unsqueeze(1)              # (B,1,H)
 
         out, attn = self.mha(Q, K, V)   # out: (B,1,H)
@@ -104,7 +103,7 @@ class RefineNoiseNet(nn.Module):
         with th.cuda.amp.autocast():
             v_hat, weights = self(vectors_flat, anchor_flat, t_embed)
             v_hat = v_hat.view(B, C, H, W)  # (B, C, H, W)
-            loss = F.mse_loss(v_hat, residuals.squeeze(1))  # L2 loss
+            loss = F.l1_loss(v_hat, residuals.squeeze(1))  # L2 loss
 
             # 5) Backprop
             optimizer.zero_grad()
