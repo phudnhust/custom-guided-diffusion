@@ -38,8 +38,8 @@ def create_argparser():
     add_dict_to_argparser(parser, defaults)
     return parser
 
-from noise_refine_model.single_block_cross_attention_based import RefineNoiseNet
-# from noise_refine_model.mlp_based import RefineNoiseNet
+from noise_refine_model.blind_single_block_cross_attention_based import RefineNoiseNet
+# from noise_refine_model.blind_mlp_based import RefineNoiseNet
 
 def main():
     start_time = time.perf_counter()

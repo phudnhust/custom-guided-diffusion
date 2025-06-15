@@ -38,7 +38,7 @@ def create_argparser():
     add_dict_to_argparser(parser, defaults)
     return parser
 
-from noise_refine_model.patch import RefineINRWithTopK, get_patch_data
+from noise_refine_model.blind_patch import RefineINRWithTopK, get_patch_data
 
 def main():
     start_time = time.perf_counter()

@@ -37,7 +37,6 @@ def create_argparser():
     return parser
 
 from noise_refine_model.crossattn import PixelCrossAttentionRefiner
-# from noise_refine_model.mlp_based import RefineNoiseNet
 
 
 def main():

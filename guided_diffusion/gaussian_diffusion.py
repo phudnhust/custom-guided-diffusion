@@ -14,7 +14,7 @@ import torch as th
 from .nn import mean_flat
 from .losses import normal_kl, discretized_gaussian_log_likelihood
 
-from noise_refine_model.mlp_based import RefineNoiseNet
+from noise_refine_model.blind_mlp_based import RefineNoiseNet
 from noise_refine_model.crossattn import laplacian_kernel, PixelCrossAttentionRefiner
 from PIL import Image
 
@@ -700,7 +700,7 @@ class GaussianDiffusion:  # initialize in function create_model_and_diffusion
 
                     noise = noise_refine_model(batch_hf_star, batch_hf_info, batch_noise_candidate)
             
-            else: # pure softmax attention
+            elif noise_refine_model is None: # pure softmax attention
 
                 # codebook: (K, C, H, W)
                 # noise: (C, H, W)
