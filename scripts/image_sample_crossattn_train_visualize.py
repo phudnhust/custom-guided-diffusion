@@ -24,6 +24,7 @@ from matplotlib import pyplot as plt
 from datetime import datetime
 import pandas as pd
 import random
+from tqdm.auto import tqdm
 
 def create_argparser():
     defaults = dict(
@@ -38,8 +39,10 @@ def create_argparser():
     add_dict_to_argparser(parser, defaults)
     return parser
 
-from noise_refine_model.single_block_cross_attention_based import RefineNoiseNet
-# from noise_refine_model.mlp_based import RefineNoiseNet
+from PIL import Image
+from noise_refine_model.crossattn import laplacian_kernel, PixelCrossAttentionRefiner
+import torch.nn as nn
+import torch.optim as optim 
 
 def main():
     start_time = time.perf_counter()
@@ -104,95 +107,77 @@ def main():
         model_kwargs["y"] = classes
     
     #---------------- REFINE NET INITIALIZE -----------------------
-    refine_net = RefineNoiseNet().to(dist_util.dev())
-    optimizer = th.optim.AdamW(
-        refine_net.parameters(),
-        lr=1e-7,           # a good starting point
-        # weight_decay=1e-2  # small amount of L2 regularization
+    refine_net = PixelCrossAttentionRefiner(feat_dim=3, embed_dim=3, num_heads=3).to(dist_util.dev())
+    criterion = nn.L1Loss()
+    optimizer = optim.Adam(
+        refine_net.parameters(), 
+        lr=1e-4, weight_decay=1e-5
     )
 
-    # checkpoint = th.load(repo_folder_path + 'refine_net_950.pth')
-    # refine_net.load_state_dict(checkpoint['model_state_dict'])
-    # optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
-    # start_epoch = checkpoint['epoch'] + 1
-    # print('start_epoch:', start_epoch)
+    ## checkpoint = th.load(repo_folder_path + 'refine_net_950.pth')
+    ## refine_net.load_state_dict(checkpoint['model_state_dict'])
+    ## optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
+    ## start_epoch = checkpoint['epoch'] + 1
+    ## print('start_epoch:', start_epoch)
 
-    refine_net.train()
+    # refine_net.train()
     verbose = False
 
     # load data
-    batch_size = 32
+    batch_size = 1
     hq_img_folder = '/mnt/HDD2/phudh/custom-guided-diffusion/hq_img/CelebDataProcessed/Barack Obama'
     all_hq_img = [os.path.join(hq_img_folder, f) for f in os.listdir(hq_img_folder) if os.path.isfile(os.path.join(hq_img_folder, f))]
-    random.shuffle(all_hq_img)  # Shuffle to ensure randomness before slicing
+    # random.shuffle(all_hq_img)  # Shuffle to ensure randomness before slicing
     hq_img_subset = all_hq_img[:int(0.7 * len(all_hq_img))]
+    # hq_img_subset.sort()
+    # print('train dataset: ')
+    # print(hq_img_subset)
     hq_img_batches = [hq_img_subset[i:i+batch_size] for i in range(0, len(hq_img_subset), batch_size)]
 
+    dummy_count = 0
+
     epoches_loss_list = []
-    n_epoch = 1000
+    n_epoch = 1
+
+    x_0_list = None
+
     for epoch in range(0, n_epoch):
         print('epoch: ', epoch, end=' ')
         # hq_img_batch = random.sample(hq_img_subset, batch_size)
+        hq_img_batch = hq_img_subset[:batch_size]
         epoch_loss_list = []
-        for hq_img_batch in hq_img_batches:
-            batch_size = len(hq_img_batch)
-
-            timestep = th.randint(1, 1000, (1,)).item()
-
-            sample_fn = diffusion.ddcm_sample_direct
-            topk_vectors_list = []
-            residuals_list = []
-            anchor_vectors_list = []
-            for hq_img_path in hq_img_batch:
-                sample = sample_fn(
-                    model,
-                    shape=(args.batch_size, 3, args.image_size, args.image_size),
-                    clip_denoised=args.clip_denoised,
-                    model_kwargs=model_kwargs,
-                    codebook=_codebooks[timestep],
-                    hq_img_path=hq_img_path,
-                    timestep=timestep,
-                    verbose=verbose
-                )
-                # print('sample: ', sample) 
-                if verbose:
-                    print('sample[\'retrieved_index\']', sample['retrieved_index'])
-                    print('sample[\'top_sim_idx\']', sample['top_sim_idx'])
-                    print('-'*20); print()
-
-                topk_vectors_list.append(th.from_numpy(_codebooks[timestep][sample['top_sim_idx']]))
-                residuals_list.append(sample['residual'])
-                anchor_vectors_list.append(th.from_numpy(_codebooks[timestep][sample['retrieved_index']]).to(dist_util.dev()))
 
 
-            topk_vectors = th.stack(topk_vectors_list, dim=0).to(dist_util.dev())
-            residuals = th.stack(residuals_list, dim=0).to(dist_util.dev())
-            anchor_vector = th.stack(anchor_vectors_list, dim=0).to(dist_util.dev())
+        batch_size = len(hq_img_batch)
+        print('batch size: ', batch_size)
 
-            timesteps = th.tensor([timestep] * batch_size).to(dist_util.dev())
-            t_embed = refine_net.timestep_embedding(timesteps, dim=128).to(dist_util.dev())
-
-            # print('anchor_vector.shape:', anchor_vector.shape)  # 
-
-            # if verbose:
-                # print('topk_vectors.shape:', topk_vectors.shape)  # torch.Size([16, 5, 3, 256, 256])
-                # print('residuals.shape:', residuals.shape)  # torch.Size([16, 1, 3, 256, 256])
-                # print('timesteps.shape:', timesteps.shape)  #  torch.Size([16])
-
-            loss = refine_net.train_refine_step(optimizer=optimizer, topk_vectors=topk_vectors, anchor_vector=anchor_vector, residuals=residuals, t_embed=t_embed)
-            epoch_loss_list.append(loss)
+        # timestep = th.randint(1, 200, (1,)).item()
+        # timestep = 200
+        # timestep = 150
+        # timestep = 50
+        timestep = 10
         
-        if (epoch > 0 and epoch % 100 == 0) or epoch == n_epoch-1:
-            refine_net.save_checkpoint(optimizer, epoch, path=repo_folder_path + f'refine_net_{epoch}.pth')
-        epoch_loss = np.mean(epoch_loss_list)
-        print('epoch_loss:', epoch_loss)
-        epoches_loss_list.append(np.mean(epoch_loss))
-        
-    df = pd.DataFrame({
-        'epoch': range(len(epoches_loss_list)),
-        'loss': epoches_loss_list
-    })
-    df.to_csv('learning_curve_' + datetime.now().strftime("_date_%Y%m%d_time_%H%M") +'.csv', index=False)
+        for hq_img_path in hq_img_batch:
+            noise_candidate_list, hf_info_list, hf_star, r_t, x_0_list = diffusion.get_5_candidates_for_train(
+                model,
+                shape=(args.batch_size, 3, args.image_size, args.image_size),
+                clip_denoised=args.clip_denoised,
+                model_kwargs=model_kwargs,
+                codebook=_codebooks[timestep],
+                hq_img_path=hq_img_path,
+                timestep=timestep,
+                verbose=verbose
+            )       # (noise_candidate_list, x_0_list)
+
+    for i, x_0 in enumerate(x_0_list):
+        x_0 = ((x_0 + 1) * 127.5).clamp(0, 255).to(th.uint8)
+        x_0 = x_0.permute(0, 2, 3, 1)
+        x_0 = x_0.contiguous()
+        imgs = x_0.cpu().numpy()  # shape: (N, H, W, C)
+        im = Image.fromarray(imgs[0])
+        im.save(f"x_0_t____t_200_{i}.png")
+        print('saved image')
+
 
     dist.barrier()
     logger.log("sampling complete")

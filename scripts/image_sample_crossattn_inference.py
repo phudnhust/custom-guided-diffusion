@@ -36,7 +36,7 @@ def create_argparser():
     add_dict_to_argparser(parser, defaults)
     return parser
 
-from noise_refine_model.single_block_cross_attention_based import RefineNoiseNet
+from noise_refine_model.crossattn import PixelCrossAttentionRefiner
 # from noise_refine_model.mlp_based import RefineNoiseNet
 
 
@@ -96,8 +96,8 @@ def main():
     start_time = time.perf_counter()
     
     #---------------- REFINE NET INITIALIZE -----------------------
-    checkpoint = th.load(repo_folder_path + 'dim_128_head_8_concat_qt_refine_net_999.pth')
-    refine_net = RefineNoiseNet().to(dist_util.dev())   
+    checkpoint = th.load(repo_folder_path + 'refine_net_200.pth')
+    refine_net = PixelCrossAttentionRefiner(feat_dim=3, embed_dim=3, num_heads=3).to(dist_util.dev())  
     refine_net.load_state_dict(checkpoint['model_state_dict'])
 
     while len(all_images) * args.batch_size < args.num_samples:
@@ -119,14 +119,29 @@ def main():
             codebooks=_codebooks,
 
             # received_indices=None,            
-            # received_indices=np.load('/mnt/HDD2/phudh/custom-guided-diffusion/compressed_info/compressed_representation_date_20250520_time_0816.npy'),
-            received_indices=np.load('/mnt/HDD2/phudh/custom-guided-diffusion/compressed_info/compressed_representation_date_20250520_time_1037.npy'),
+            # received_indices=np.load('/mnt/HDD2/phudh/custom-guided-diffusion/compressed_info/compressed_representation_date_20250611_time_1510.npy'),
+            # received_indices=np.load('/mnt/HDD2/phudh/custom-guided-diffusion/compressed_info/compressed_representation_date_20250520_time_1037.npy'),
 
             # hq_img_path="/mnt/HDD2/phudh/custom-guided-diffusion/hq_img/imagenet-256/academic_gown/000.jpg",
-            hq_img_path="/mnt/HDD2/phudh/custom-guided-diffusion/hq_img/imagenet-256/academic_gown/004.jpg",
+            # hq_img_path="/mnt/HDD2/phudh/custom-guided-diffusion/hq_img/imagenet-256/academic_gown/004.jpg",
 
-            # hq_img_path='/mnt/HDD2/phudh/custom-guided-diffusion/hq_img/CelebDataProcessed/Jennifer Lopez/8.jpg',
+            # -----------------
+
+            received_indices=np.load('/mnt/HDD2/phudh/custom-guided-diffusion/compressed_info/compressed_representation_date_20250611_time_1533.npy'),
+            # received_indices=np.load('/mnt/HDD2/phudh/custom-guided-diffusion/compressed_info/compressed_representation_date_20250611_time_1536.npy'),
+
+            hq_img_path='/mnt/HDD2/phudh/custom-guided-diffusion/hq_img/CelebDataProcessed/Jennifer Lopez/8.jpg',
             # hq_img_path='/mnt/HDD2/phudh/custom-guided-diffusion/hq_img/CelebDataProcessed/Leonardo DiCaprio/20.jpg',
+
+            # -----------------
+
+            # received_indices=np.load('/mnt/HDD2/phudh/custom-guided-diffusion/compressed_info/compressed_representation_date_20250611_time_1635.npy'),
+            # received_indices=np.load('/mnt/HDD2/phudh/custom-guided-diffusion/compressed_info/compressed_representation_date_20250611_time_1647.npy'),
+
+            # hq_img_path='/mnt/HDD2/phudh/custom-guided-diffusion/hq_img/CelebDataProcessed/Barack Obama/0.jpg',
+            # hq_img_path='/mnt/HDD2/phudh/custom-guided-diffusion/hq_img/CelebDataProcessed/Barack Obama/10.jpg',
+
+            # -----------------
 
             noise_refine=True,
             noise_refine_model=refine_net
