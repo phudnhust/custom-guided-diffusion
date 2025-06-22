@@ -22,6 +22,7 @@ from guided_diffusion.script_util import (
 
 from matplotlib import pyplot as plt
 from datetime import datetime
+from PIL import Image
 
 def create_argparser():
     defaults = dict(
@@ -37,7 +38,7 @@ def create_argparser():
     return parser
 
 from noise_refine_model.crossattn import PixelCrossAttentionRefiner
-
+from noise_refine_model.transmitter_top_5 import Transmitter_top_5
 
 def main():
     start_time = time.perf_counter()
@@ -95,7 +96,7 @@ def main():
     start_time = time.perf_counter()
     
     #---------------- REFINE NET INITIALIZE -----------------------
-    checkpoint = th.load(repo_folder_path + 'refine_net_200.pth')
+    checkpoint = th.load(repo_folder_path + 'new_crossattn_refine_net_250.pth')
     refine_net = PixelCrossAttentionRefiner(feat_dim=3, embed_dim=3, num_heads=3).to(dist_util.dev())  
     refine_net.load_state_dict(checkpoint['model_state_dict'])
 
@@ -119,17 +120,17 @@ def main():
 
             # received_indices=None,            
             # received_indices=np.load('/mnt/HDD2/phudh/custom-guided-diffusion/compressed_info/compressed_representation_date_20250611_time_1510.npy'),
-            # received_indices=np.load('/mnt/HDD2/phudh/custom-guided-diffusion/compressed_info/compressed_representation_date_20250520_time_1037.npy'),
+            received_indices=np.load('/mnt/HDD2/phudh/custom-guided-diffusion/compressed_info/compressed_representation_date_20250520_time_1037.npy'),
 
             # hq_img_path="/mnt/HDD2/phudh/custom-guided-diffusion/hq_img/imagenet-256/academic_gown/000.jpg",
-            # hq_img_path="/mnt/HDD2/phudh/custom-guided-diffusion/hq_img/imagenet-256/academic_gown/004.jpg",
+            hq_img_path="/mnt/HDD2/phudh/custom-guided-diffusion/hq_img/imagenet-256/academic_gown/004.jpg",
 
             # -----------------
 
-            received_indices=np.load('/mnt/HDD2/phudh/custom-guided-diffusion/compressed_info/compressed_representation_date_20250611_time_1533.npy'),
+            # received_indices=np.load('/mnt/HDD2/phudh/custom-guided-diffusion/compressed_info/compressed_representation_date_20250611_time_1533.npy'),
             # received_indices=np.load('/mnt/HDD2/phudh/custom-guided-diffusion/compressed_info/compressed_representation_date_20250611_time_1536.npy'),
 
-            hq_img_path='/mnt/HDD2/phudh/custom-guided-diffusion/hq_img/CelebDataProcessed/Jennifer Lopez/8.jpg',
+            # hq_img_path='/mnt/HDD2/phudh/custom-guided-diffusion/hq_img/CelebDataProcessed/Jennifer Lopez/8.jpg',
             # hq_img_path='/mnt/HDD2/phudh/custom-guided-diffusion/hq_img/CelebDataProcessed/Leonardo DiCaprio/20.jpg',
 
             # -----------------
@@ -143,8 +144,7 @@ def main():
             # -----------------
 
             noise_refine=True,
-            noise_refine_model=refine_net
-            # noise_refine_model=None
+            noise_refine_model=refine_net,
 
             # noise_refine=False
 
@@ -191,10 +191,9 @@ def main():
         # output to png
         data = np.load(out_path)
         images = data['arr_0'][0]
-        plt.imshow(images)
-        plt.axis('off')  # Remove axes for a cleaner image
-        plt.savefig(repo_folder_path + f"png_output/" + out_filename + datetime.now().strftime("_date_%Y%m%d_time_%H%M") + ".png", bbox_inches='tight', pad_inches=0)
-        plt.close()  # Close the figure to avoid overlapping
+        print('images.shape: ', images.shape)
+        images = Image.fromarray(images)
+        images.save(repo_folder_path + f"png_output/" + out_filename + datetime.now().strftime("_date_%Y%m%d_time_%H%M") + ".png")
 
     dist.barrier()
     logger.log("sampling complete")

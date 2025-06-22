@@ -1,10 +1,6 @@
-import math
 import torch
 import torch.nn.functional as F
 import torch.nn as nn
-# from einops import rearrange
-# from torchvision import transforms
-# from xformers.ops import memory_efficient_attention, AttentionOpDispatch
 import numpy as np
 
 def laplacian_kernel(img_tensor):
@@ -44,25 +40,39 @@ import torch.nn as nn
 class PixelCrossAttentionRefiner(nn.Module):
     def __init__(self, feat_dim, embed_dim, num_heads):
         """
-        feat_dim  = C, channel‐dim of your HF and Z tensors
-        embed_dim = desired attention subspace (set = C if you want [B,C,H,W] out)
-        num_heads = number of attention heads (embed_dim % num_heads == 0)
+        Initialize PixelCrossAttentionRefiner.
+        
+        Args:
+            feat_dim (int): Channel dimension of your HF and Z tensors (C)
+            embed_dim (int): Desired attention subspace dimension (set = C if you want [B,C,H,W] out)
+            num_heads (int): Number of attention heads (must satisfy embed_dim % num_heads == 0)
         """
         super().__init__()
+        
+        if not isinstance(feat_dim, int) or feat_dim <= 0:
+            raise ValueError(f"feat_dim must be a positive integer, got {feat_dim}")
+        if not isinstance(embed_dim, int) or embed_dim <= 0:
+            raise ValueError(f"embed_dim must be a positive integer, got {embed_dim}")
+        if not isinstance(num_heads, int) or num_heads <= 0:
+            raise ValueError(f"num_heads must be a positive integer, got {num_heads}")
+        if embed_dim % num_heads != 0:
+            raise ValueError(f"embed_dim ({embed_dim}) must be divisible by num_heads ({num_heads})")
+            
         self.feat_dim = feat_dim
         # first block: input is (C + 2 coords) → embed_dim
         self.q1 = nn.Linear(feat_dim + 2, embed_dim)
         self.k1 = nn.Linear(feat_dim + 2, embed_dim)
-        self.v1 = nn.Linear(feat_dim    , embed_dim)  # values don’t need coords
+        self.v1 = nn.Linear(feat_dim    , embed_dim)  # values don't need coords
 
         # second block: input is (C + embed_dim + 2 coords) → embed_dim
         self.q2 = nn.Linear(feat_dim + embed_dim + 2, embed_dim)
         self.k2 = nn.Linear(feat_dim + embed_dim + 2, embed_dim)
         self.v2 = nn.Linear(feat_dim + embed_dim    , embed_dim)
 
-        self.attn = nn.MultiheadAttention(embed_dim, num_heads, batch_first=False)
+        self.attn1 = nn.MultiheadAttention(embed_dim, num_heads, batch_first=False)
+        self.attn2 = nn.MultiheadAttention(embed_dim, num_heads, batch_first=False)
 
-    def _cross_attn(self, Q_feat, K_feats, V_feats, q_proj, k_proj, v_proj):
+    def _cross_attn(self, Q_feat, K_feats, V_feats, q_proj, k_proj, v_proj, attn):
         B, _, H, W = Q_feat.shape
         K = K_feats.size(1)
         N = H * W
@@ -93,7 +103,7 @@ class PixelCrossAttentionRefiner(nn.Module):
         Value = v_proj(Value).permute(1,0,2)  # → [K, B*N, E]
 
         # multi‐head attention
-        out, _ = self.attn(Query, Key, Value)     # [1, B*N, E]
+        out, _ = attn(Query, Key, Value)     # [1, B*N, E]
         out = out.squeeze(0)            # [B*N, E]
         out = out.reshape(B, H, W, -1).permute(0,3,1,2)
         return out                      # [B, E, H, W]
@@ -120,7 +130,7 @@ class PixelCrossAttentionRefiner(nn.Module):
         j_k = j_grid.unsqueeze(1).expand(-1,K,-1,-1,-1)             # [B,K,1,H,W]
         K1 = torch.cat([HF_cands, i_k, j_k], dim=2)                 # [B,K,C+2,H,W]
         V1 = Z_cands                                               # [B,K,C, H, W]
-        z_star = self._cross_attn(Q1, K1, V1, self.q1, self.k1, self.v1)
+        z_star = self._cross_attn(Q1, K1, V1, self.q1, self.k1, self.v1, self.attn1)
         # return z_star
     
         # --- second cross‐attention ---
@@ -128,7 +138,7 @@ class PixelCrossAttentionRefiner(nn.Module):
         Q2 = torch.cat([HF_star, z_star, i_grid, j_grid], dim=1)    # [B,C+E+2,H,W]
         K2 = torch.cat([HF_cands, z_star_exp, i_k, j_k],    dim=2)  # [B,K,C+E+2,H,W]
         V2 = torch.cat([Z_cands,   z_star_exp],            dim=2)  # [B,K,C+E   ,H,W]
-        z_hat = self._cross_attn(Q2, K2, V2, self.q2, self.k2, self.v2)
+        z_hat = self._cross_attn(Q2, K2, V2, self.q2, self.k2, self.v2, self.attn2)
 
         return z_hat  # [B, embed_dim, H, W]
 
@@ -136,14 +146,69 @@ class PixelCrossAttentionRefiner(nn.Module):
         """
         Saves model+optimizer state and current epoch.
         
-        refine_net:   your RefineNoiseNet instance
-        optimizer:    the optimizer you’re using (e.g. AdamW)
-        epoch:        current epoch number (int)
-        path:         where to write the .pth file
+        Args:
+            optimizer: The optimizer being used (e.g. AdamW)
+            epoch (int): Current epoch number
+            path (str): Path where to write the .pth file
+            
+        Raises:
+            IOError: If saving the checkpoint fails
         """
-        torch.save({
-            'epoch': epoch,
-            'model_state_dict': self.state_dict(),
-            'optimizer_state_dict': optimizer.state_dict(),
-        }, path)
-        print(f"Saved checkpoint: {path}")
+        try:
+            torch.save({
+                'epoch': epoch,
+                'model_state_dict': self.state_dict(),
+                'optimizer_state_dict': optimizer.state_dict(),
+            }, path)
+            print(f"Successfully saved checkpoint: {path}")
+        except Exception as e:
+            raise IOError(f"Failed to save checkpoint to {path}: {str(e)}")
+
+import torch
+import torch.nn as nn
+import torchvision.models as models
+
+class AlexNetPerceptualLoss(nn.Module):
+    def __init__(self,
+                 layers=('conv1','conv2','conv3','conv4','conv5'),
+                 device='cuda'):
+        super().__init__()
+        # load pretrained AlexNet
+        alex_features = models.alexnet(pretrained=True).features.to(device)
+        alex_features.eval()
+        for p in alex_features.parameters():
+            p.requires_grad = False
+
+        # map friendly names to indices in alexnet.features
+        layer_idxs = {
+            'conv1': 0,   # → after features[0] = Conv2d(3,64,...)
+            'conv2': 3,   # → after features[3] = Conv2d(64,192,...)
+            'conv3': 6,   # → after features[6] = Conv2d(192,384,...)
+            'conv4': 8,   # → after features[8] = Conv2d(384,256,...)
+            'conv5': 10,  # → after features[10] = Conv2d(256,256,...)
+        }
+
+        # build a ModuleDict of AlexNet‐slices up to each requested layer
+        self.blocks = nn.ModuleDict({
+            name: nn.Sequential(*list(alex_features.children())[:idx+1])
+            for name, idx in layer_idxs.items() if name in layers
+        })
+
+        self.criterion = nn.L1Loss()
+        # same imagenet normalization
+        self.register_buffer('mean', torch.Tensor([0.485,0.456,0.406])[None,:,None,None])
+        self.register_buffer('std',  torch.Tensor([0.229,0.224,0.225])[None,:,None,None])
+
+    def forward(self, pred, target):
+        """
+        pred, target: floats in [0,1], shape (B,3,H,W)
+        returns scalar perceptual loss
+        """
+        # normalize exactly as AlexNet expects
+        p = (pred   - self.mean) / self.std
+        t = (target - self.mean) / self.std
+
+        loss = 0.0
+        for block in self.blocks.values():
+            loss += self.criterion(block(p), block(t))
+        return loss

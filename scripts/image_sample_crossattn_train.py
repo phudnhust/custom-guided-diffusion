@@ -40,7 +40,7 @@ def create_argparser():
     return parser
 
 from PIL import Image
-from noise_refine_model.crossattn import laplacian_kernel, PixelCrossAttentionRefiner
+from noise_refine_model.crossattn import laplacian_kernel, PixelCrossAttentionRefiner, AlexNetPerceptualLoss
 import torch.nn as nn
 import torch.optim as optim 
 
@@ -114,6 +114,8 @@ def main():
         lr=1e-4, weight_decay=1e-5
     )
 
+    perc_loss = AlexNetPerceptualLoss(device=dist_util.dev()).to(dist_util.dev())
+
     ## checkpoint = th.load(repo_folder_path + 'refine_net_950.pth')
     ## refine_net.load_state_dict(checkpoint['model_state_dict'])
     ## optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
@@ -128,10 +130,15 @@ def main():
     hq_img_folder = '/mnt/HDD2/phudh/custom-guided-diffusion/hq_img/CelebDataProcessed/Barack Obama'
     all_hq_img = [os.path.join(hq_img_folder, f) for f in os.listdir(hq_img_folder) if os.path.isfile(os.path.join(hq_img_folder, f))]
     # random.shuffle(all_hq_img)  # Shuffle to ensure randomness before slicing
-    hq_img_subset = all_hq_img[:int(0.7 * len(all_hq_img))]
-    # hq_img_subset.sort()
-    # print('train dataset: ')
-    # print(hq_img_subset)
+    hq_img_subset = all_hq_img[:int(0.8 * len(all_hq_img))]
+
+
+    hq_img_subset_copy = hq_img_subset.copy()
+    hq_img_subset_copy.sort()
+    print('train dataset: ')
+    print(hq_img_subset_copy)
+
+    
     hq_img_batches = [hq_img_subset[i:i+batch_size] for i in range(0, len(hq_img_subset), batch_size)]
 
     dummy_count = 0
@@ -152,8 +159,10 @@ def main():
             batch_hf_info         = []
             batch_hf_star         = []
             batch_r_t             = []
+            batch_x_start         = []
+            batch_x_t             = []
             for hq_img_path in hq_img_batch:
-                noise_candidate_list, hf_info_list, hf_star, r_t, x_0_list = diffusion.get_5_candidates_for_train(
+                noise_candidate_list, hf_info_list, hf_star, r_t, x_0_list, x_start, x_t = diffusion.get_5_candidates_for_train(
                     model,
                     shape=(args.batch_size, 3, args.image_size, args.image_size),
                     clip_denoised=args.clip_denoised,
@@ -178,6 +187,8 @@ def main():
                 batch_hf_info.append(hf_info)
                 batch_hf_star.append(hf_star)
                 batch_r_t.append(r_t.squeeze(0))
+                batch_x_start.append(x_start.squeeze(0))
+                batch_x_t.append(x_t)
 
                 # ## ---------- VISUALIZE HF INFO OF X_0|T ----------
                 # for high_freq in hf_info_list:
@@ -208,12 +219,23 @@ def main():
             batch_hf_info         = th.stack(batch_hf_info).to(dist_util.dev()).squeeze(2)  # torch.Size([32, 5, 3, 256, 256])
             batch_hf_star         = th.stack(batch_hf_star).to(dist_util.dev()).squeeze(1)  # torch.Size([32, 3, 256, 256])
             batch_r_t             = th.stack(batch_r_t).to(dist_util.dev())                 # torch.Size([32, 3, 256, 256])
+            batch_x_start         = th.stack(batch_x_start).to(dist_util.dev())                 # torch.Size([32, 3, 256, 256])
+            # batch_x_t             = th.stack(batch_x_t).to(dist_util.dev())                 # torch.Size([32, 3, 256, 256])
 
             # print('batch_hf_info.shape: ', batch_hf_info.shape)
             # print('batch_hf_star.shape: ', batch_hf_star.shape)
 
+        
             z_hat = refine_net(batch_hf_star, batch_hf_info, batch_noise_candidate)  # → [B, 3, H, W]
-            loss = criterion(z_hat, batch_r_t)
+
+            # print('batch_x_start.shape', batch_x_start.shape)
+            # print('batch_x_t.shape', batch_x_t.shape)
+            # print('z_hat.shape', z_hat.shape)
+
+            # x_0_with_z_hat = diffusion.sample_x_0_t_minus_1_for_lpips(model, batch_x_t, timestep, args.clip_denoised, model_kwargs, z_hat)
+
+            loss = criterion(z_hat, batch_r_t) 
+            # loss = criterion(z_hat, batch_r_t) + 0.5*perc_loss(x_0_with_z_hat, batch_x_start)
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()
@@ -221,7 +243,7 @@ def main():
             epoch_loss_list.append(loss.item())
 
         if (epoch > 0 and epoch % 50 == 0) or epoch == n_epoch-1:
-            refine_net.save_checkpoint(optimizer, epoch, path=repo_folder_path + f'refine_net_{epoch}.pth')
+            refine_net.save_checkpoint(optimizer, epoch, path=repo_folder_path + f'new_crossattn_refine_net_{epoch}.pth')
         epoch_loss = np.mean(epoch_loss_list)
         print('epoch_loss:', epoch_loss)
         epoches_loss_list.append(np.mean(epoch_loss))

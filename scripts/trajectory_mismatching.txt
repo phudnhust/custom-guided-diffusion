@@ -1,0 +1,1261 @@
+Logging to /tmp/openai-2025-06-22-09-15-12-374811
+creating model and diffusion...
+_CudaDeviceProperties(name='NVIDIA GeForce RTX 2080 Ti', major=7, minor=5, total_memory=10821MB, multi_processor_count=68, uuid=bf7139ff-4bb8-09ae-b006-f7ca3e9e4580, L2_cache_size=5MB)
+device: cuda:0
+Loading model time: 13.620704 seconds
+sampling...
+Loading codebook...
+_codebooks.shape: (1001, 32, 3, 256, 256)
+Codebook generated!
+Loading codebooks time: 29.383029 seconds
+
+>>>>>>>>> Sample at receiver's side, load the codebook indicies from file <<<<<<<<
+>>>>>>>>> Refine noise with learnable network <<<<<<<<
+
+loss(refine noise, ground truth residual) =  tensor(0.9096, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.9088, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.9105, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.9085, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.9074, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.9040, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.9051, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.9092, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.9059, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.9052, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.9037, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.9034, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.9023, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.9023, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.9028, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.9030, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.9025, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.9016, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.9027, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.9033, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.9003, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.9013, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8996, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8985, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8979, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8980, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8957, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8983, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8943, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8952, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8970, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8941, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8958, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8947, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8949, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8950, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8933, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8946, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8916, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8919, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8892, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8935, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8884, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8908, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8910, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8888, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8854, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8870, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8855, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8871, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8839, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8857, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8845, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8843, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8884, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8862, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8831, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8825, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8802, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8783, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8778, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8764, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8780, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8769, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8773, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8751, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8796, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8736, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8722, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8719, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8700, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8717, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8717, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8716, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8685, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8694, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8690, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8644, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8673, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8664, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8624, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8661, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8632, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8640, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8627, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8655, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8608, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8616, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8617, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8646, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8609, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8637, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8649, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8640, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8628, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8624, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8616, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8611, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8597, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8632, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8616, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8624, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8610, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8612, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8642, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8625, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8656, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8645, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8624, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8629, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8633, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8625, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8634, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8634, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8617, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8615, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8609, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8618, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8620, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8592, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8620, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8613, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8619, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8612, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8608, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8584, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8605, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8584, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8605, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8574, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8581, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8588, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8578, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8617, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8615, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8586, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8592, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8576, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8586, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8584, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8576, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8587, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8577, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8597, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8571, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8572, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8598, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8616, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8597, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8589, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8581, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8571, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8545, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8561, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8563, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8545, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8525, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8552, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8524, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8539, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8530, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8545, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8515, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8519, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8543, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8547, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8538, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8536, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8518, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8522, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8530, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8525, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8537, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8532, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8520, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8554, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8537, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8545, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8531, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8539, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8533, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8535, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8554, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8518, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8492, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8522, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8510, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8486, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8499, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8517, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8490, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8515, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8512, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8538, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8509, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8531, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8497, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8487, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8495, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8499, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8484, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8480, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8466, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8490, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8456, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8491, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8474, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8480, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8484, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8467, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8473, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8477, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8490, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8494, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8486, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8480, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8486, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8454, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8476, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8483, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8501, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8480, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8490, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8453, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8492, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8480, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8470, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8480, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8447, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8476, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8452, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8472, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8467, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8480, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8451, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8480, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8443, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8469, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8475, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8475, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8472, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8450, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8453, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8454, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8452, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8432, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8444, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8436, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8441, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8432, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8439, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8420, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8407, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8412, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8414, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8395, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8410, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8391, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8404, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8396, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8433, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8410, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8394, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8403, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8382, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8417, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8410, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8437, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8438, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8404, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8393, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8403, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8414, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8409, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8420, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8410, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8399, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8393, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8389, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8410, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8400, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8405, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8376, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8411, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8383, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8409, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8369, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8406, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8405, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8414, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8398, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8419, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8404, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8410, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8402, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8388, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8377, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8387, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8377, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8387, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8374, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8367, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8368, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8372, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8381, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8392, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8386, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8392, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8387, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8398, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8378, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8362, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8379, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8392, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8374, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8371, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8369, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8372, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8382, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8368, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8370, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8377, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8374, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8378, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8393, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8390, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8400, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8371, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8384, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8389, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8375, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8377, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8374, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8381, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8368, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8381, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8352, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8373, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8380, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8368, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8364, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8368, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8347, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8356, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8367, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8358, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8353, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8344, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8358, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8351, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8354, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8360, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8366, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8337, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8346, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8328, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8353, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8353, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8365, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8336, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8352, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8371, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8353, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8352, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8355, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8356, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8319, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8343, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8354, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8342, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8331, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8377, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8365, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8361, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8343, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8335, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8343, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8336, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8352, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8321, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8311, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8341, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8325, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8327, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8318, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8329, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8330, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8332, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8312, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8326, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8323, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8337, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8346, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8336, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8344, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8334, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8336, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8340, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8338, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8315, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8319, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8326, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8346, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8325, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8319, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8341, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8336, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8320, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8316, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8311, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8344, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8338, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8305, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8314, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8321, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8330, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8312, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8314, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8328, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8313, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8317, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8330, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8317, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8332, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8317, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8321, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8345, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8278, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8320, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8316, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8304, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8307, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8317, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8320, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8337, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8325, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8327, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8302, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8306, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8338, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8326, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8321, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8320, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8315, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8328, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8329, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8302, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8334, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8341, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8338, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8323, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8340, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8304, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8345, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8346, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8320, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8331, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8320, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8307, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8325, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8294, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8316, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8330, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8308, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8293, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8304, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8320, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8345, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8321, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8287, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8315, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8316, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8317, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8299, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8326, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8300, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8303, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8305, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8322, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8291, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8304, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8309, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8284, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8297, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8307, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8297, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8288, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8279, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8295, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8328, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8298, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8282, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8284, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8286, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8298, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8281, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8283, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8296, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8290, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8282, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8274, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8300, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8255, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8282, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8290, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8297, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8267, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8271, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8289, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8285, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8273, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8278, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8280, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8309, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8288, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8266, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8283, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8311, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8301, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8272, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8284, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8291, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8278, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8272, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8291, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8264, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8302, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8276, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8271, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8291, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8262, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8280, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8257, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8267, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8264, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8248, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8274, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8258, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8271, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8280, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8276, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8290, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8290, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8268, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8260, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8284, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8258, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8288, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8254, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8261, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8298, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8255, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8281, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8291, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8258, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8265, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8269, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8264, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8262, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8268, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8245, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8278, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8255, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8266, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8295, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8273, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8273, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8265, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8274, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8256, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8255, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8283, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8269, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8263, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8260, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8268, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8294, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8260, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8280, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8274, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8241, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8269, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8243, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8235, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8260, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8257, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8245, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8245, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8245, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8235, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8244, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8242, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8252, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8256, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8256, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8261, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8257, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8263, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8256, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8263, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8280, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8252, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8251, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8245, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8271, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8270, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8273, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8255, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8266, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8245, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8243, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8242, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8244, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8243, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8262, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8234, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8250, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8242, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8268, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8275, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8268, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8237, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8277, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8236, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8244, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8223, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8273, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8245, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8251, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8245, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8255, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8259, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8245, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8261, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8249, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8269, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8240, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8231, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8266, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8256, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8278, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8257, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8233, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8237, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8225, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8242, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8249, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8258, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8263, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8256, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8248, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8248, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8256, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8237, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8231, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8253, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8226, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8237, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8244, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8231, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8261, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8264, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8256, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8239, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8231, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8246, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8230, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8204, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8247, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8223, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8255, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8223, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8250, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8245, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8230, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8232, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8250, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8233, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8250, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8262, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8231, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8238, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8253, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8230, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8247, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8268, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8262, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8234, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8220, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8253, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8234, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8240, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8222, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8254, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8237, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8263, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8229, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8218, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8258, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8257, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8232, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8202, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8236, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8223, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8242, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8231, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8241, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8238, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8271, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8234, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8247, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8209, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8239, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8236, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8267, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8256, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8242, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8233, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8219, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8238, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8250, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8227, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8221, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8230, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8220, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8239, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8217, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8228, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8230, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8230, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8248, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8223, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8255, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8242, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8220, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8214, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8221, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8240, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8228, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8249, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8238, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8223, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8234, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8241, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8259, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8266, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8232, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8234, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8237, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8260, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8240, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8257, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8244, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8213, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8218, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8233, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8229, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8243, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8238, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8261, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8222, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8225, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8226, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8229, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8239, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8242, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8217, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8241, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8221, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8256, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8229, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8239, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8244, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8224, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8206, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8241, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8221, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8219, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8227, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8219, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8248, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8221, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8207, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8235, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8226, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8255, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8236, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8254, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8229, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8225, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8206, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8215, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8209, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8226, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8239, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8238, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8220, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8206, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8261, device='cuda:0')
+PixelCrossAttentionRefiner t=200
+loss(refine noise, ground truth residual) =  tensor(0.1814, device='cuda:0')
+PixelCrossAttentionRefiner t=199
+loss(refine noise, ground truth residual) =  tensor(0.1813, device='cuda:0')
+PixelCrossAttentionRefiner t=198
+loss(refine noise, ground truth residual) =  tensor(0.1812, device='cuda:0')
+PixelCrossAttentionRefiner t=197
+loss(refine noise, ground truth residual) =  tensor(0.1811, device='cuda:0')
+PixelCrossAttentionRefiner t=196
+loss(refine noise, ground truth residual) =  tensor(0.1811, device='cuda:0')
+PixelCrossAttentionRefiner t=195
+loss(refine noise, ground truth residual) =  tensor(0.1811, device='cuda:0')
+PixelCrossAttentionRefiner t=194
+loss(refine noise, ground truth residual) =  tensor(0.1810, device='cuda:0')
+PixelCrossAttentionRefiner t=193
+loss(refine noise, ground truth residual) =  tensor(0.1810, device='cuda:0')
+PixelCrossAttentionRefiner t=192
+loss(refine noise, ground truth residual) =  tensor(0.1810, device='cuda:0')
+PixelCrossAttentionRefiner t=191
+loss(refine noise, ground truth residual) =  tensor(0.1811, device='cuda:0')
+PixelCrossAttentionRefiner t=190
+loss(refine noise, ground truth residual) =  tensor(0.1812, device='cuda:0')
+PixelCrossAttentionRefiner t=189
+loss(refine noise, ground truth residual) =  tensor(0.1812, device='cuda:0')
+PixelCrossAttentionRefiner t=188
+loss(refine noise, ground truth residual) =  tensor(0.1813, device='cuda:0')
+PixelCrossAttentionRefiner t=187
+loss(refine noise, ground truth residual) =  tensor(0.1814, device='cuda:0')
+PixelCrossAttentionRefiner t=186
+loss(refine noise, ground truth residual) =  tensor(0.1814, device='cuda:0')
+PixelCrossAttentionRefiner t=185
+loss(refine noise, ground truth residual) =  tensor(0.1816, device='cuda:0')
+PixelCrossAttentionRefiner t=184
+loss(refine noise, ground truth residual) =  tensor(0.1818, device='cuda:0')
+PixelCrossAttentionRefiner t=183
+loss(refine noise, ground truth residual) =  tensor(0.1820, device='cuda:0')
+PixelCrossAttentionRefiner t=182
+loss(refine noise, ground truth residual) =  tensor(0.1820, device='cuda:0')
+PixelCrossAttentionRefiner t=181
+loss(refine noise, ground truth residual) =  tensor(0.1823, device='cuda:0')
+PixelCrossAttentionRefiner t=180
+loss(refine noise, ground truth residual) =  tensor(0.1824, device='cuda:0')
+PixelCrossAttentionRefiner t=179
+loss(refine noise, ground truth residual) =  tensor(0.1825, device='cuda:0')
+PixelCrossAttentionRefiner t=178
+loss(refine noise, ground truth residual) =  tensor(0.1828, device='cuda:0')
+PixelCrossAttentionRefiner t=177
+loss(refine noise, ground truth residual) =  tensor(0.1830, device='cuda:0')
+PixelCrossAttentionRefiner t=176
+loss(refine noise, ground truth residual) =  tensor(0.1832, device='cuda:0')
+PixelCrossAttentionRefiner t=175
+loss(refine noise, ground truth residual) =  tensor(0.1834, device='cuda:0')
+PixelCrossAttentionRefiner t=174
+loss(refine noise, ground truth residual) =  tensor(0.1836, device='cuda:0')
+PixelCrossAttentionRefiner t=173
+loss(refine noise, ground truth residual) =  tensor(0.1838, device='cuda:0')
+PixelCrossAttentionRefiner t=172
+loss(refine noise, ground truth residual) =  tensor(0.1841, device='cuda:0')
+PixelCrossAttentionRefiner t=171
+loss(refine noise, ground truth residual) =  tensor(0.1843, device='cuda:0')
+PixelCrossAttentionRefiner t=170
+loss(refine noise, ground truth residual) =  tensor(0.1845, device='cuda:0')
+PixelCrossAttentionRefiner t=169
+loss(refine noise, ground truth residual) =  tensor(0.1847, device='cuda:0')
+PixelCrossAttentionRefiner t=168
+loss(refine noise, ground truth residual) =  tensor(0.1850, device='cuda:0')
+PixelCrossAttentionRefiner t=167
+loss(refine noise, ground truth residual) =  tensor(0.1852, device='cuda:0')
+PixelCrossAttentionRefiner t=166
+loss(refine noise, ground truth residual) =  tensor(0.1855, device='cuda:0')
+PixelCrossAttentionRefiner t=165
+loss(refine noise, ground truth residual) =  tensor(0.1857, device='cuda:0')
+PixelCrossAttentionRefiner t=164
+loss(refine noise, ground truth residual) =  tensor(0.1860, device='cuda:0')
+PixelCrossAttentionRefiner t=163
+loss(refine noise, ground truth residual) =  tensor(0.1862, device='cuda:0')
+PixelCrossAttentionRefiner t=162
+loss(refine noise, ground truth residual) =  tensor(0.1865, device='cuda:0')
+PixelCrossAttentionRefiner t=161
+loss(refine noise, ground truth residual) =  tensor(0.1867, device='cuda:0')
+PixelCrossAttentionRefiner t=160
+loss(refine noise, ground truth residual) =  tensor(0.1870, device='cuda:0')
+PixelCrossAttentionRefiner t=159
+loss(refine noise, ground truth residual) =  tensor(0.1872, device='cuda:0')
+PixelCrossAttentionRefiner t=158
+loss(refine noise, ground truth residual) =  tensor(0.1875, device='cuda:0')
+PixelCrossAttentionRefiner t=157
+loss(refine noise, ground truth residual) =  tensor(0.1877, device='cuda:0')
+PixelCrossAttentionRefiner t=156
+loss(refine noise, ground truth residual) =  tensor(0.1880, device='cuda:0')
+PixelCrossAttentionRefiner t=155
+loss(refine noise, ground truth residual) =  tensor(0.1882, device='cuda:0')
+PixelCrossAttentionRefiner t=154
+loss(refine noise, ground truth residual) =  tensor(0.1885, device='cuda:0')
+PixelCrossAttentionRefiner t=153
+loss(refine noise, ground truth residual) =  tensor(0.1887, device='cuda:0')
+PixelCrossAttentionRefiner t=152
+loss(refine noise, ground truth residual) =  tensor(0.1890, device='cuda:0')
+PixelCrossAttentionRefiner t=151
+loss(refine noise, ground truth residual) =  tensor(0.1892, device='cuda:0')
+PixelCrossAttentionRefiner t=150
+loss(refine noise, ground truth residual) =  tensor(0.1894, device='cuda:0')
+PixelCrossAttentionRefiner t=149
+loss(refine noise, ground truth residual) =  tensor(0.1897, device='cuda:0')
+PixelCrossAttentionRefiner t=148
+loss(refine noise, ground truth residual) =  tensor(0.1899, device='cuda:0')
+PixelCrossAttentionRefiner t=147
+loss(refine noise, ground truth residual) =  tensor(0.1902, device='cuda:0')
+PixelCrossAttentionRefiner t=146
+loss(refine noise, ground truth residual) =  tensor(0.1904, device='cuda:0')
+PixelCrossAttentionRefiner t=145
+loss(refine noise, ground truth residual) =  tensor(0.1905, device='cuda:0')
+PixelCrossAttentionRefiner t=144
+loss(refine noise, ground truth residual) =  tensor(0.1908, device='cuda:0')
+PixelCrossAttentionRefiner t=143
+loss(refine noise, ground truth residual) =  tensor(0.1910, device='cuda:0')
+PixelCrossAttentionRefiner t=142
+loss(refine noise, ground truth residual) =  tensor(0.1913, device='cuda:0')
+PixelCrossAttentionRefiner t=141
+loss(refine noise, ground truth residual) =  tensor(0.1915, device='cuda:0')
+PixelCrossAttentionRefiner t=140
+loss(refine noise, ground truth residual) =  tensor(0.1917, device='cuda:0')
+PixelCrossAttentionRefiner t=139
+loss(refine noise, ground truth residual) =  tensor(0.1919, device='cuda:0')
+PixelCrossAttentionRefiner t=138
+loss(refine noise, ground truth residual) =  tensor(0.1921, device='cuda:0')
+PixelCrossAttentionRefiner t=137
+loss(refine noise, ground truth residual) =  tensor(0.1923, device='cuda:0')
+PixelCrossAttentionRefiner t=136
+loss(refine noise, ground truth residual) =  tensor(0.1925, device='cuda:0')
+PixelCrossAttentionRefiner t=135
+loss(refine noise, ground truth residual) =  tensor(0.1927, device='cuda:0')
+PixelCrossAttentionRefiner t=134
+loss(refine noise, ground truth residual) =  tensor(0.1929, device='cuda:0')
+PixelCrossAttentionRefiner t=133
+loss(refine noise, ground truth residual) =  tensor(0.1931, device='cuda:0')
+PixelCrossAttentionRefiner t=132
+loss(refine noise, ground truth residual) =  tensor(0.1933, device='cuda:0')
+PixelCrossAttentionRefiner t=131
+loss(refine noise, ground truth residual) =  tensor(0.1935, device='cuda:0')
+PixelCrossAttentionRefiner t=130
+loss(refine noise, ground truth residual) =  tensor(0.1936, device='cuda:0')
+PixelCrossAttentionRefiner t=129
+loss(refine noise, ground truth residual) =  tensor(0.1938, device='cuda:0')
+PixelCrossAttentionRefiner t=128
+loss(refine noise, ground truth residual) =  tensor(0.1939, device='cuda:0')
+PixelCrossAttentionRefiner t=127
+loss(refine noise, ground truth residual) =  tensor(0.1941, device='cuda:0')
+PixelCrossAttentionRefiner t=126
+loss(refine noise, ground truth residual) =  tensor(0.1943, device='cuda:0')
+PixelCrossAttentionRefiner t=125
+loss(refine noise, ground truth residual) =  tensor(0.1944, device='cuda:0')
+PixelCrossAttentionRefiner t=124
+loss(refine noise, ground truth residual) =  tensor(0.1945, device='cuda:0')
+PixelCrossAttentionRefiner t=123
+loss(refine noise, ground truth residual) =  tensor(0.1947, device='cuda:0')
+PixelCrossAttentionRefiner t=122
+loss(refine noise, ground truth residual) =  tensor(0.1948, device='cuda:0')
+PixelCrossAttentionRefiner t=121
+loss(refine noise, ground truth residual) =  tensor(0.1949, device='cuda:0')
+PixelCrossAttentionRefiner t=120
+loss(refine noise, ground truth residual) =  tensor(0.1950, device='cuda:0')
+PixelCrossAttentionRefiner t=119
+loss(refine noise, ground truth residual) =  tensor(0.1952, device='cuda:0')
+PixelCrossAttentionRefiner t=118
+loss(refine noise, ground truth residual) =  tensor(0.1952, device='cuda:0')
+PixelCrossAttentionRefiner t=117
+loss(refine noise, ground truth residual) =  tensor(0.1953, device='cuda:0')
+PixelCrossAttentionRefiner t=116
+loss(refine noise, ground truth residual) =  tensor(0.1955, device='cuda:0')
+PixelCrossAttentionRefiner t=115
+loss(refine noise, ground truth residual) =  tensor(0.1956, device='cuda:0')
+PixelCrossAttentionRefiner t=114
+loss(refine noise, ground truth residual) =  tensor(0.1958, device='cuda:0')
+PixelCrossAttentionRefiner t=113
+loss(refine noise, ground truth residual) =  tensor(0.1959, device='cuda:0')
+PixelCrossAttentionRefiner t=112
+loss(refine noise, ground truth residual) =  tensor(0.1961, device='cuda:0')
+PixelCrossAttentionRefiner t=111
+loss(refine noise, ground truth residual) =  tensor(0.1961, device='cuda:0')
+PixelCrossAttentionRefiner t=110
+loss(refine noise, ground truth residual) =  tensor(0.1962, device='cuda:0')
+PixelCrossAttentionRefiner t=109
+loss(refine noise, ground truth residual) =  tensor(0.1963, device='cuda:0')
+PixelCrossAttentionRefiner t=108
+loss(refine noise, ground truth residual) =  tensor(0.1963, device='cuda:0')
+PixelCrossAttentionRefiner t=107
+loss(refine noise, ground truth residual) =  tensor(0.1964, device='cuda:0')
+PixelCrossAttentionRefiner t=106
+loss(refine noise, ground truth residual) =  tensor(0.1965, device='cuda:0')
+PixelCrossAttentionRefiner t=105
+loss(refine noise, ground truth residual) =  tensor(0.1965, device='cuda:0')
+PixelCrossAttentionRefiner t=104
+loss(refine noise, ground truth residual) =  tensor(0.1965, device='cuda:0')
+PixelCrossAttentionRefiner t=103
+loss(refine noise, ground truth residual) =  tensor(0.1964, device='cuda:0')
+PixelCrossAttentionRefiner t=102
+loss(refine noise, ground truth residual) =  tensor(0.1963, device='cuda:0')
+PixelCrossAttentionRefiner t=101
+loss(refine noise, ground truth residual) =  tensor(0.1963, device='cuda:0')
+PixelCrossAttentionRefiner t=100
+loss(refine noise, ground truth residual) =  tensor(0.1962, device='cuda:0')
+PixelCrossAttentionRefiner t=99
+loss(refine noise, ground truth residual) =  tensor(0.1962, device='cuda:0')
+PixelCrossAttentionRefiner t=98
+loss(refine noise, ground truth residual) =  tensor(0.1960, device='cuda:0')
+PixelCrossAttentionRefiner t=97
+loss(refine noise, ground truth residual) =  tensor(0.1959, device='cuda:0')
+PixelCrossAttentionRefiner t=96
+loss(refine noise, ground truth residual) =  tensor(0.1959, device='cuda:0')
+PixelCrossAttentionRefiner t=95
+loss(refine noise, ground truth residual) =  tensor(0.1957, device='cuda:0')
+PixelCrossAttentionRefiner t=94
+loss(refine noise, ground truth residual) =  tensor(0.1954, device='cuda:0')
+PixelCrossAttentionRefiner t=93
+loss(refine noise, ground truth residual) =  tensor(0.1953, device='cuda:0')
+PixelCrossAttentionRefiner t=92
+loss(refine noise, ground truth residual) =  tensor(0.1951, device='cuda:0')
+PixelCrossAttentionRefiner t=91
+loss(refine noise, ground truth residual) =  tensor(0.1950, device='cuda:0')
+PixelCrossAttentionRefiner t=90
+loss(refine noise, ground truth residual) =  tensor(0.1948, device='cuda:0')
+PixelCrossAttentionRefiner t=89
+loss(refine noise, ground truth residual) =  tensor(0.1946, device='cuda:0')
+PixelCrossAttentionRefiner t=88
+loss(refine noise, ground truth residual) =  tensor(0.1943, device='cuda:0')
+PixelCrossAttentionRefiner t=87
+loss(refine noise, ground truth residual) =  tensor(0.1942, device='cuda:0')
+PixelCrossAttentionRefiner t=86
+loss(refine noise, ground truth residual) =  tensor(0.1939, device='cuda:0')
+PixelCrossAttentionRefiner t=85
+loss(refine noise, ground truth residual) =  tensor(0.1937, device='cuda:0')
+PixelCrossAttentionRefiner t=84
+loss(refine noise, ground truth residual) =  tensor(0.1934, device='cuda:0')
+PixelCrossAttentionRefiner t=83
+loss(refine noise, ground truth residual) =  tensor(0.1931, device='cuda:0')
+PixelCrossAttentionRefiner t=82
+loss(refine noise, ground truth residual) =  tensor(0.1929, device='cuda:0')
+PixelCrossAttentionRefiner t=81
+loss(refine noise, ground truth residual) =  tensor(0.1926, device='cuda:0')
+PixelCrossAttentionRefiner t=80
+loss(refine noise, ground truth residual) =  tensor(0.1923, device='cuda:0')
+PixelCrossAttentionRefiner t=79
+loss(refine noise, ground truth residual) =  tensor(0.1921, device='cuda:0')
+PixelCrossAttentionRefiner t=78
+loss(refine noise, ground truth residual) =  tensor(0.1919, device='cuda:0')
+PixelCrossAttentionRefiner t=77
+loss(refine noise, ground truth residual) =  tensor(0.1916, device='cuda:0')
+PixelCrossAttentionRefiner t=76
+loss(refine noise, ground truth residual) =  tensor(0.1913, device='cuda:0')
+PixelCrossAttentionRefiner t=75
+loss(refine noise, ground truth residual) =  tensor(0.1911, device='cuda:0')
+PixelCrossAttentionRefiner t=74
+loss(refine noise, ground truth residual) =  tensor(0.1908, device='cuda:0')
+PixelCrossAttentionRefiner t=73
+loss(refine noise, ground truth residual) =  tensor(0.1905, device='cuda:0')
+PixelCrossAttentionRefiner t=72
+loss(refine noise, ground truth residual) =  tensor(0.1904, device='cuda:0')
+PixelCrossAttentionRefiner t=71
+loss(refine noise, ground truth residual) =  tensor(0.1901, device='cuda:0')
+PixelCrossAttentionRefiner t=70
+loss(refine noise, ground truth residual) =  tensor(0.1899, device='cuda:0')
+PixelCrossAttentionRefiner t=69
+loss(refine noise, ground truth residual) =  tensor(0.1898, device='cuda:0')
+PixelCrossAttentionRefiner t=68
+loss(refine noise, ground truth residual) =  tensor(0.1896, device='cuda:0')
+PixelCrossAttentionRefiner t=67
+loss(refine noise, ground truth residual) =  tensor(0.1894, device='cuda:0')
+PixelCrossAttentionRefiner t=66
+loss(refine noise, ground truth residual) =  tensor(0.1892, device='cuda:0')
+PixelCrossAttentionRefiner t=65
+loss(refine noise, ground truth residual) =  tensor(0.1890, device='cuda:0')
+PixelCrossAttentionRefiner t=64
+loss(refine noise, ground truth residual) =  tensor(0.1889, device='cuda:0')
+PixelCrossAttentionRefiner t=63
+loss(refine noise, ground truth residual) =  tensor(0.1888, device='cuda:0')
+PixelCrossAttentionRefiner t=62
+loss(refine noise, ground truth residual) =  tensor(0.1887, device='cuda:0')
+PixelCrossAttentionRefiner t=61
+loss(refine noise, ground truth residual) =  tensor(0.1887, device='cuda:0')
+PixelCrossAttentionRefiner t=60
+loss(refine noise, ground truth residual) =  tensor(0.1884, device='cuda:0')
+PixelCrossAttentionRefiner t=59
+loss(refine noise, ground truth residual) =  tensor(0.1884, device='cuda:0')
+PixelCrossAttentionRefiner t=58
+loss(refine noise, ground truth residual) =  tensor(0.1883, device='cuda:0')
+PixelCrossAttentionRefiner t=57
+loss(refine noise, ground truth residual) =  tensor(0.1883, device='cuda:0')
+PixelCrossAttentionRefiner t=56
+loss(refine noise, ground truth residual) =  tensor(0.1882, device='cuda:0')
+PixelCrossAttentionRefiner t=55
+loss(refine noise, ground truth residual) =  tensor(0.1881, device='cuda:0')
+PixelCrossAttentionRefiner t=54
+loss(refine noise, ground truth residual) =  tensor(0.1882, device='cuda:0')
+PixelCrossAttentionRefiner t=53
+loss(refine noise, ground truth residual) =  tensor(0.1880, device='cuda:0')
+PixelCrossAttentionRefiner t=52
+loss(refine noise, ground truth residual) =  tensor(0.1881, device='cuda:0')
+PixelCrossAttentionRefiner t=51
+loss(refine noise, ground truth residual) =  tensor(0.1880, device='cuda:0')
+PixelCrossAttentionRefiner t=50
+loss(refine noise, ground truth residual) =  tensor(0.1880, device='cuda:0')
+PixelCrossAttentionRefiner t=49
+loss(refine noise, ground truth residual) =  tensor(0.1879, device='cuda:0')
+PixelCrossAttentionRefiner t=48
+loss(refine noise, ground truth residual) =  tensor(0.1879, device='cuda:0')
+PixelCrossAttentionRefiner t=47
+loss(refine noise, ground truth residual) =  tensor(0.1880, device='cuda:0')
+PixelCrossAttentionRefiner t=46
+loss(refine noise, ground truth residual) =  tensor(0.1880, device='cuda:0')
+PixelCrossAttentionRefiner t=45
+loss(refine noise, ground truth residual) =  tensor(0.1879, device='cuda:0')
+PixelCrossAttentionRefiner t=44
+loss(refine noise, ground truth residual) =  tensor(0.1880, device='cuda:0')
+PixelCrossAttentionRefiner t=43
+loss(refine noise, ground truth residual) =  tensor(0.1880, device='cuda:0')
+PixelCrossAttentionRefiner t=42
+loss(refine noise, ground truth residual) =  tensor(0.1879, device='cuda:0')
+PixelCrossAttentionRefiner t=41
+loss(refine noise, ground truth residual) =  tensor(0.1879, device='cuda:0')
+PixelCrossAttentionRefiner t=40
+loss(refine noise, ground truth residual) =  tensor(0.1879, device='cuda:0')
+PixelCrossAttentionRefiner t=39
+loss(refine noise, ground truth residual) =  tensor(0.1879, device='cuda:0')
+PixelCrossAttentionRefiner t=38
+loss(refine noise, ground truth residual) =  tensor(0.1879, device='cuda:0')
+PixelCrossAttentionRefiner t=37
+loss(refine noise, ground truth residual) =  tensor(0.1879, device='cuda:0')
+PixelCrossAttentionRefiner t=36
+loss(refine noise, ground truth residual) =  tensor(0.1879, device='cuda:0')
+PixelCrossAttentionRefiner t=35
+loss(refine noise, ground truth residual) =  tensor(0.1879, device='cuda:0')
+PixelCrossAttentionRefiner t=34
+loss(refine noise, ground truth residual) =  tensor(0.1879, device='cuda:0')
+PixelCrossAttentionRefiner t=33
+loss(refine noise, ground truth residual) =  tensor(0.1879, device='cuda:0')
+PixelCrossAttentionRefiner t=32
+loss(refine noise, ground truth residual) =  tensor(0.1879, device='cuda:0')
+PixelCrossAttentionRefiner t=31
+loss(refine noise, ground truth residual) =  tensor(0.1879, device='cuda:0')
+PixelCrossAttentionRefiner t=30
+loss(refine noise, ground truth residual) =  tensor(0.1879, device='cuda:0')
+PixelCrossAttentionRefiner t=29
+loss(refine noise, ground truth residual) =  tensor(0.1879, device='cuda:0')
+PixelCrossAttentionRefiner t=28
+loss(refine noise, ground truth residual) =  tensor(0.1879, device='cuda:0')
+PixelCrossAttentionRefiner t=27
+loss(refine noise, ground truth residual) =  tensor(0.1880, device='cuda:0')
+PixelCrossAttentionRefiner t=26
+loss(refine noise, ground truth residual) =  tensor(0.1879, device='cuda:0')
+PixelCrossAttentionRefiner t=25
+loss(refine noise, ground truth residual) =  tensor(0.1879, device='cuda:0')
+PixelCrossAttentionRefiner t=24
+loss(refine noise, ground truth residual) =  tensor(0.1880, device='cuda:0')
+PixelCrossAttentionRefiner t=23
+loss(refine noise, ground truth residual) =  tensor(0.1880, device='cuda:0')
+PixelCrossAttentionRefiner t=22
+loss(refine noise, ground truth residual) =  tensor(0.1879, device='cuda:0')
+PixelCrossAttentionRefiner t=21
+loss(refine noise, ground truth residual) =  tensor(0.1880, device='cuda:0')
+PixelCrossAttentionRefiner t=20
+loss(refine noise, ground truth residual) =  tensor(0.1881, device='cuda:0')
+PixelCrossAttentionRefiner t=19
+loss(refine noise, ground truth residual) =  tensor(0.1881, device='cuda:0')
+PixelCrossAttentionRefiner t=18
+loss(refine noise, ground truth residual) =  tensor(0.1881, device='cuda:0')
+PixelCrossAttentionRefiner t=17
+loss(refine noise, ground truth residual) =  tensor(0.1881, device='cuda:0')
+PixelCrossAttentionRefiner t=16
+loss(refine noise, ground truth residual) =  tensor(0.1880, device='cuda:0')
+PixelCrossAttentionRefiner t=15
+loss(refine noise, ground truth residual) =  tensor(0.1881, device='cuda:0')
+PixelCrossAttentionRefiner t=14
+loss(refine noise, ground truth residual) =  tensor(0.1880, device='cuda:0')
+PixelCrossAttentionRefiner t=13
+loss(refine noise, ground truth residual) =  tensor(0.1880, device='cuda:0')
+PixelCrossAttentionRefiner t=12
+loss(refine noise, ground truth residual) =  tensor(0.1881, device='cuda:0')
+PixelCrossAttentionRefiner t=11
+loss(refine noise, ground truth residual) =  tensor(0.1880, device='cuda:0')
+PixelCrossAttentionRefiner t=10
+loss(refine noise, ground truth residual) =  tensor(0.1880, device='cuda:0')
+PixelCrossAttentionRefiner t=9
+loss(refine noise, ground truth residual) =  tensor(0.1881, device='cuda:0')
+PixelCrossAttentionRefiner t=8
+loss(refine noise, ground truth residual) =  tensor(0.1880, device='cuda:0')
+PixelCrossAttentionRefiner t=7
+loss(refine noise, ground truth residual) =  tensor(0.1881, device='cuda:0')
+PixelCrossAttentionRefiner t=6
+loss(refine noise, ground truth residual) =  tensor(0.1881, device='cuda:0')
+PixelCrossAttentionRefiner t=5
+loss(refine noise, ground truth residual) =  tensor(0.1880, device='cuda:0')
+PixelCrossAttentionRefiner t=4
+loss(refine noise, ground truth residual) =  tensor(0.1880, device='cuda:0')
+PixelCrossAttentionRefiner t=3
+loss(refine noise, ground truth residual) =  tensor(0.1881, device='cuda:0')
+PixelCrossAttentionRefiner t=2
+loss(refine noise, ground truth residual) =  tensor(0.1880, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8249, device='cuda:0')
+loss(refine noise, ground truth residual) =  tensor(0.8251, device='cuda:0')
+compressed_representation: [ 5 20  2  6  3 21 10 18 28  9 13 25 13 25 21 28 12  6 19 28  7  7 22 13
+ 24 29  8  8  1  3 12 12  4 17 17 14 28 29 28 12 24 30 26  4 23 18  2  2
+  0 17  5 24 26  0  5 21  9  8 20  5  0 21 24 17 28  0 29 23  6 25 31 29
+  5 31  8 20  8 29 25 15 12  2 28  1 20 19  1  9 19  0 30 22 18  4 20 22
+ 10 22 14  5  7  9 31  6  7  2  7 22 24 24 15 22 27  4  0 10 23  0 11  5
+ 23 10 14 27 22 26  4  5  3 18 21  8 28  0  4  6  1  5  2 11 20  5 21 18
+  7 22 12 19  6  4 17 25 29 18 17 30  1 31 19 21  9 29 16  6 17  9 15 12
+ 31 26 17 25 26  2 23  6 28  1  7  6 20 19 15 12 28  9  2 10 18 20 28  9
+ 26 23  9 22 26  7  6 20  5  5  6 22  7  1 31  2  8 13 30 14 14 16 21  0
+ 31  4  6 20  9  6 16 14 27 10 26  1 14 21 11 21  5 14 15 30 25  1 15 24
+  0 18 13  2  4 30  0  7  3 25 10 11 25  2 24 21 25 10 13  9 26 16  3 22
+  4 30 18 11  0 11  3  9 29 25  4 22 31 18  7  5  4  4  0 20 17  8  8  4
+ 31 30  7 24 20  0 13 21  6 26  6 24 23  5 28 23 26 17 31 13 19 31 18 21
+ 26 12 19 11  4 24  0  5  1  4 30  6  6  5  0 28 14 28 25  6 10 24 28 25
+  0 11 31 22 31 31  7 25 31 29 21 22  5 12 29  3 16 30 26 24 31 16 27 29
+ 27  2 20 17  6 12 14 17 16 28  2 20 25 14 21 11  2 25 18  2 22 20 17 18
+ 31 26 22 13 19  7  1 27 16 13 16  7 10 17  8 28  0 12 21 28  8 10 18 25
+ 22 13 30 29 13  9  3 12 16  7 10 24 25 22  7 22 23 14 16  0 27 10 12 13
+  1 24 18 29 19  7  2 14  9 31 11 13 23  7 28 15 14 17  8 30  4  5  8 31
+ 27  4 30  6 22  5  1  3  0 21 24 20 18 29 30 20 12 23  8 14 15 28  7  3
+ 16 28 13  9  7 10  6 15 19 25 21  0  1 11 20  5  3 20 27 21 14  0 29 23
+ 17 27 16 28 10 30  5 19 30  9 16  0 17  5 24  7 12 31 16  9  8 28 15 10
+ 10  7 24 29 14 18  2 18 23 28 14  5  6  9 12 17 27  4 21 26  2 12 19 24
+ 21 31 23  4  3 29 14 13  5  2  3  1 17 13 18 16  1 10 29 19 21  3 20 24
+ 15 19  6 31  5 24 14 24 29 16 28 14 15 12 22 26  2 15 23 27 15 12 25 29
+ 15  2 10  7 28 12  0 14 23 30 20 10 26 19 25  2  0 10 10 27 11 17  2 13
+ 21 13 31 25 17 25  3 11 27 30 17  5 29  1  9  5  9 19  1  5 31 20  8 21
+ 15  6  4 13 21 27 26 13 28 20 18 28  7  2 12  5 29 30 30 20  1  3  8 30
+ 18  9  6 16 29 11 25  2  8 15 18  2 26 22 21 20  7  2  5 12 15  9  5 23
+ 13  1  6 27 11 16 28 31 29 28 24 22 14 14 21  1  7  5 21  0  1 19 24  3
+ 24 10  0  6  5  0  3 16 20 31 30  5 23 21 11 30  1 24 11  7 24 23 18 25
+ 30 22  9 24  2 13  9 18 17  2 27  3 30 21 15 31  1  7 15 29  0 16 12 26
+  8 31  0 22 23  9 26  2 24 25 26  9 23 20  8 27 23  0 21 29 19 29 13 19
+  1 26 13  9  3  7 11 22 28 23 17 21  7 23  8  9 27 29 19 17 23 29 22 24
+  5 13 10  9 13 19 13  3 25 18 27  3 17 31  5  8 21 29 11 17 23 17 15 23
+ 20 22 29 22 12 30  0  7  2 20 30 23 28 13 24  9 25 24  3 29  7 12 19 16
+ 12 16 16 26 17  2 20 17 14 31 10 10  1  6 14 10 13 25  1 15 21  3  6 16
+ 19  4 15 30 23 16 25  3 28 19 18 15 15 30  7 22 12  7  4 17 27 16 18  3
+  3 12 19  6 17 12 27 20 10  1 11 30 14 21 17 16 20 24 28 29 17 28 24 17
+ 31 12  6 25 18 22 11  3 30 13 25 21  4  7  9 25 23 10 21 15 22  5 12  1
+ 30  2 13 13 30  5  7 12  9  0 18 31 24  2  2 14 12 13  7  4 16 24 19 25
+  4 28 23 15 20 21 12 28 12  3 21 27  5  8 17 30]
+created 1 samples
+Inference time: 426.318671 seconds
+saving to /mnt/HDD2/phudh/custom-guided-diffusion/npz_output/samples_1x256x256x3.npz
+images.shape:  (256, 256, 3)
+sampling complete
+Export time: 0.037358 seconds
