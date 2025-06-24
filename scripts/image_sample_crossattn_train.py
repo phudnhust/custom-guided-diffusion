@@ -144,7 +144,7 @@ def main():
     dummy_count = 0
 
     epoches_loss_list = []
-    n_epoch = 1000
+    n_epoch = 200
     for epoch in range(0, n_epoch):
         print('epoch: ', epoch, end=' ')
         hq_img_batch = random.sample(hq_img_subset, batch_size)
@@ -152,7 +152,7 @@ def main():
         for hq_img_batch in tqdm(hq_img_batches, desc='Batch '):
             batch_size = len(hq_img_batch)
 
-            timestep = th.randint(1, 200, (1,)).item()
+            timestep = th.randint(2, 1000, (1,)).item()
             # timestep = 200
 
             batch_noise_candidate = []
