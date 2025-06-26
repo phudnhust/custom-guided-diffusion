@@ -67,7 +67,8 @@ class PixelCrossAttentionRefiner(nn.Module):
         # second block: input is (C + embed_dim + 2 coords) → embed_dim
         self.q2 = nn.Linear(feat_dim + embed_dim + 2, embed_dim)
         self.k2 = nn.Linear(feat_dim + embed_dim + 2, embed_dim)
-        self.v2 = nn.Linear(feat_dim + embed_dim    , embed_dim)
+        # self.v2 = nn.Linear(feat_dim + embed_dim    , embed_dim)
+        self.v2 = nn.Linear(feat_dim    , embed_dim)  # values don't need coords
 
         self.attn1 = nn.MultiheadAttention(embed_dim, num_heads, batch_first=False)
         self.attn2 = nn.MultiheadAttention(embed_dim, num_heads, batch_first=False)
@@ -137,7 +138,8 @@ class PixelCrossAttentionRefiner(nn.Module):
         z_star_exp = z_star.unsqueeze(1).expand(-1,K,-1,-1,-1)      # [B,K,embed_dim,H,W]
         Q2 = torch.cat([HF_star, z_star, i_grid, j_grid], dim=1)    # [B,C+E+2,H,W]
         K2 = torch.cat([HF_cands, z_star_exp, i_k, j_k],    dim=2)  # [B,K,C+E+2,H,W]
-        V2 = torch.cat([Z_cands,   z_star_exp],            dim=2)  # [B,K,C+E   ,H,W]
+        # V2 = torch.cat([Z_cands,   z_star_exp],            dim=2)  # [B,K,C+E   ,H,W]
+        V2 = Z_cands
         z_hat = self._cross_attn(Q2, K2, V2, self.q2, self.k2, self.v2, self.attn2)
 
         return z_hat  # [B, embed_dim, H, W]

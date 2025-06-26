@@ -6,6 +6,8 @@ import numpy as np
 
 
 class SoftmaxAttention(nn.Module):
-    def __init__(self):
+    def __init__(self, top_k):
         super().__init__()
+        self.top_k = top_k
+
        

@@ -111,7 +111,7 @@ def main():
     criterion = nn.L1Loss()
     optimizer = optim.Adam(
         refine_net.parameters(), 
-        lr=1e-4, weight_decay=1e-5
+        lr=2e-4, weight_decay=1e-5
     )
 
     perc_loss = AlexNetPerceptualLoss(device=dist_util.dev()).to(dist_util.dev())
@@ -152,7 +152,7 @@ def main():
         for hq_img_batch in tqdm(hq_img_batches, desc='Batch '):
             batch_size = len(hq_img_batch)
 
-            timestep = th.randint(2, 1000, (1,)).item()
+            timestep = th.randint(1, 200, (1,)).item()      # [1, 199)
             # timestep = 200
 
             batch_noise_candidate = []
@@ -162,7 +162,7 @@ def main():
             batch_x_start         = []
             batch_x_t             = []
             for hq_img_path in hq_img_batch:
-                noise_candidate_list, hf_info_list, hf_star, r_t, x_0_list, x_start, x_t = diffusion.get_5_candidates_for_train(
+                noise_candidate_list, hf_info_list, hf_star, r_t, x_0_list, x_start, x_t_add_1 = diffusion.get_5_candidates_for_train(
                     model,
                     shape=(args.batch_size, 3, args.image_size, args.image_size),
                     clip_denoised=args.clip_denoised,
@@ -188,7 +188,7 @@ def main():
                 batch_hf_star.append(hf_star)
                 batch_r_t.append(r_t.squeeze(0))
                 batch_x_start.append(x_start.squeeze(0))
-                batch_x_t.append(x_t)
+                # batch_x_t.append(x_t)
 
                 # ## ---------- VISUALIZE HF INFO OF X_0|T ----------
                 # for high_freq in hf_info_list:
@@ -243,17 +243,11 @@ def main():
             epoch_loss_list.append(loss.item())
 
         if (epoch > 0 and epoch % 50 == 0) or epoch == n_epoch-1:
-            refine_net.save_checkpoint(optimizer, epoch, path=repo_folder_path + f'new_crossattn_refine_net_{epoch}.pth')
+            refine_net.save_checkpoint(optimizer, epoch, path=repo_folder_path + f'refine_net_epoch_{epoch}.pth')
         epoch_loss = np.mean(epoch_loss_list)
         print('epoch_loss:', epoch_loss)
         epoches_loss_list.append(np.mean(epoch_loss))
         
-    df = pd.DataFrame({
-        'epoch': range(len(epoches_loss_list)),
-        'loss': epoches_loss_list
-    })
-    df.to_csv('learning_curve_crossattn_' + datetime.now().strftime("_date_%Y%m%d_time_%H%M") +'.csv', index=False)
-
     dist.barrier()
     logger.log("sampling complete")
 

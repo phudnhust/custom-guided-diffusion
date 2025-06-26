@@ -96,7 +96,7 @@ def main():
     start_time = time.perf_counter()
     
     #---------------- REFINE NET INITIALIZE -----------------------
-    checkpoint = th.load(repo_folder_path + 'new_crossattn_refine_net_199.pth')
+    checkpoint = th.load(repo_folder_path + 'refine_net_epoch_50.pth')
     refine_net = PixelCrossAttentionRefiner(feat_dim=3, embed_dim=3, num_heads=3).to(dist_util.dev())  
     refine_net.load_state_dict(checkpoint['model_state_dict'])
 
@@ -143,10 +143,8 @@ def main():
 
             # -----------------
 
-            noise_refine=True,
             noise_refine_model=refine_net,
-
-            # noise_refine=False
+            # noise_refine_model=None
 
         )
 

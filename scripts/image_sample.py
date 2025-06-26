@@ -97,7 +97,6 @@ def main():
             # hq_img_path="/mnt/HDD2/phudh/custom-guided-diffusion/hq_img/academic_gown/000.jpg",
             # hq_img_path="/mnt/HDD2/phudh/custom-guided-diffusion/hq_img/academic_gown/004.jpg",
             hq_img_path='/mnt/HDD2/phudh/custom-guided-diffusion/hq_img/CelebDataProcessed/Barack Obama/4.jpg',
-            noise_refine=False
         )
 
         sample = ((sample + 1) * 127.5).clamp(0, 255).to(th.uint8)

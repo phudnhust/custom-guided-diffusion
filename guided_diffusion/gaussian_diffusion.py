@@ -554,9 +554,7 @@ class GaussianDiffusion:  # initialize in function create_model_and_diffusion
         hq_img=None,       # high quality image
         codebook=None,
         received_indices=None,
-        noise_refine=False,  # if True, blend the noise with the codebook
         noise_refine_model=None,
-        top_k=5,
         device=None,
     ):
         """
@@ -622,96 +620,102 @@ class GaussianDiffusion:  # initialize in function create_model_and_diffusion
             
             # print(f'anchor noise: shape {noise.shape} mean {noise.mean()} std {noise.std()} min {noise.min()} max {noise.max()}')
 
-            if noise_refine:
-                if type(noise_refine_model) is PixelCrossAttentionRefiner:
-                    if t.item() <= 200:
+            if noise_refine_model is None:
+                print('using basedline DDCM')
+                pass
+            elif type(noise_refine_model) is PixelCrossAttentionRefiner:
+                if (t.item() > 0) and (t.item() < 200):
 
-                        noise_candidate_list, hf_info_list, hf_star, x_0_list = self.get_5_candidates_for_inference(model,
-                                                                    out['mean'],
-                                                                    out['log_variance'],
-                                                                    noise.unsqueeze(0),
-                                                                    x,
-                                                                    t,                  # t: current timestep
-                                                                    clip_denoised,
-                                                                    denoised_fn,
-                                                                    cond_fn,
-                                                                    model_kwargs,
-                                                                    hq_img,       # high quality image
-                                                                    codebook,
-                                                                    received_indices,
-                                                                    device)
-                        # if t.item() in [10, 30, 50, 100, 150, 199, 200, 201]:
-                            # for i, x_0_candidate in enumerate(x_0_list):
-                                    # x_0_candidate = ((x_0_candidate + 1) * 127.5).clamp(0, 255).to(th.uint8)
-                                    # x_0_candidate = x_0_candidate.permute(0, 2, 3, 1)
-                                    # x_0_candidate = x_0_candidate.contiguous()
-                                    # imgs = x_0_candidate.cpu().numpy()  # shape: (N, H, W, C)
-                                    # im = Image.fromarray(imgs[0])
-                                    # im.save(f"x_0_t_timestep_{t.item()}_variant_{i}.png")
-                        
-                        noise_candidate = th.stack(noise_candidate_list).squeeze(1)     # torch.Size([5, 3, 256, 256]) 
-                        hf_info = th.stack(hf_info_list).squeeze(1)                     # torch.Size([5, 3, 256, 256])
-                        hf_star = hf_star.squeeze(0)                                    # torch.Size([3, 256, 256])
-
-                        batch_noise_candidate = th.stack([noise_candidate]).type(th.float32)   # torch.Size([1, 5, 3, 256, 256])
-                        batch_hf_info = th.stack([hf_info])                             # torch.Size([1, 5, 3, 256, 256])
-                        batch_hf_star = th.stack([hf_star])                             # torch.Size([1, 3, 256, 256])
-
-                        # print('batch_noise_candidate.dtype: ', batch_noise_candidate.dtype)
-                        # print('batch_hf_info.dtype: ', batch_hf_info.dtype)
-                        # print('batch_hf_star.dtype: ', batch_hf_star.dtype)
-
-                        # noise = noise_refine_model(batch_hf_star, batch_hf_info, batch_noise_candidate)
-                        noise = hq_img - out["pred_xstart"]
-                    print('t=', t.item(), '\t loss(refine noise, ground truth residual) = ', th.nn.L1Loss()(hq_img - out["pred_xstart"], noise))
-
-                elif type(noise_refine_model) is Transmitter_top_5:
-                    sims = th.einsum('kuwv,buwv->kb', codebook, hq_img - out["pred_xstart"])
-                    print('sims: ', sims.shape)
-                    sim_values, sim_indices = th.topk(sims, k=15, largest=True, dim=0) 
+                    noise_candidate_list, hf_info_list, hf_star, x_0_list = self.get_5_candidates_for_inference(model,
+                                                                out['mean'],
+                                                                out['log_variance'],
+                                                                noise.unsqueeze(0),
+                                                                t,                  # t: current timestep
+                                                                clip_denoised,
+                                                                denoised_fn,
+                                                                model_kwargs,
+                                                                hq_img,       # high quality image
+                                                                codebook,
+                                                                device)
+                    # if t.item() in [10, 30, 50, 100, 150, 199]:
+                        # for i, x_0_candidate in enumerate(x_0_list):
+                                # x_0_candidate = ((x_0_candidate + 1) * 127.5).clamp(0, 255).to(th.uint8)
+                                # x_0_candidate = x_0_candidate.permute(0, 2, 3, 1)
+                                # x_0_candidate = x_0_candidate.contiguous()
+                                # imgs = x_0_candidate.cpu().numpy()  # shape: (N, H, W, C)
+                                # im = Image.fromarray(imgs[0])
+                                # im.save(f"x_0_t_timestep_{t.item()}_variant_{i}.png")
                     
-                    topk_vectors = codebook[sim_indices]                                 # (3, 1, C, H, W)
-                    # print('topk_vectors.shape: ', topk_vectors.shape)
+                    noise_candidate = th.stack(noise_candidate_list).squeeze(1)     # torch.Size([5, 3, 256, 256]) 
+                    hf_info = th.stack(hf_info_list).squeeze(1)                     # torch.Size([5, 3, 256, 256])
+                    hf_star = hf_star.squeeze(0)                                    # torch.Size([3, 256, 256])
 
-                    weights = th.nn.functional.softmax(sim_values / 0.1, dim=0)      # (topk)   ()
-                    
-                    noise = th.sum(weights[:, None, None, None] * topk_vectors, dim=0, keepdim=True).squeeze(1)    # (1, C, H, W)
-                    # print('noise.shape: ', noise.shape)
+                    batch_noise_candidate = th.stack([noise_candidate]).type(th.float32)   # torch.Size([1, 5, 3, 256, 256])
+                    batch_hf_info = th.stack([hf_info])                             # torch.Size([1, 5, 3, 256, 256])
+                    batch_hf_star = th.stack([hf_star])                             # torch.Size([1, 3, 256, 256])
 
-                    pass
+                    # print('batch_noise_candidate.dtype: ', batch_noise_candidate.dtype)
+                    # print('batch_hf_info.dtype: ', batch_hf_info.dtype)
+                    # print('batch_hf_star.dtype: ', batch_hf_star.dtype)
 
-                elif type(noise_refine_model) is SoftmaxAttention: # pure softmax attention
+                    # noise = 0.5* (hq_img - out["pred_xstart"]) + 0.5 * noise_refine_model(batch_hf_star, batch_hf_info, batch_noise_candidate)
+                    # noise = noise_refine_model(batch_hf_star, batch_hf_info, batch_noise_candidate)
 
-                    # codebook: (K, C, H, W)
-                    # noise: (C, H, W)
+                    # if t.item() == 190:
+                        # th.save(noise, 'noise.pt')
+                    noise = th.load('noise.pt').to(device)
 
-                    anchor_noise_flat_norm = th.nn.functional.normalize(noise.view(1, -1), dim=1)
-                    codebook_flat_norm     = th.nn.functional.normalize(codebook.view(codebook.shape[0], -1), dim=1)
 
-                    cos_sim = th.matmul(anchor_noise_flat_norm, codebook_flat_norm.T).squeeze(0)
+                    # noise = hq_img - out["pred_xstart"]
+                print('t=', t.item(), '\t loss(refine noise, ground truth residual) = ', th.nn.L1Loss()(hq_img - out["pred_xstart"], noise))
 
-                    sims_value, sims_index = th.topk(cos_sim, k=top_k, largest=True)
-                    sims_value = sims_value.view(-1)
-                    sims_index = sims_index.view(-1)
-                    # print('Non-learnable softmax attention')
-                    # print('idxs: ', idxs)
-                    
-                    # ------- remove the anchor noise (z_t) from top k ---------
-                    # idxs_index = th.nonzero(sims_index == idxs)
-                    # print('idxs_index: ', idxs_index)
-                    # sims_value = th.cat((sims_value[:idxs_index], sims_value[idxs_index+1:]))
-                    # sims_index = th.cat((sims_index[:idxs_index], sims_index[idxs_index+1:]))
+            elif type(noise_refine_model) is Transmitter_top_5:
+                sims = th.einsum('kuwv,buwv->kb', codebook, hq_img - out["pred_xstart"])
+                print('sims: ', sims.shape)
+                sim_values, sim_indices = th.topk(sims, k=15, largest=True, dim=0) 
+                
+                topk_vectors = codebook[sim_indices]                                 # (3, 1, C, H, W)
+                # print('topk_vectors.shape: ', topk_vectors.shape)
 
-                    # print('sims_value: ', sims_value)
-                    # print('sims_index: ', sims_index)
+                weights = th.nn.functional.softmax(sim_values / 0.1, dim=0)      # (topk)   ()
+                
+                noise = th.sum(weights[:, None, None, None] * topk_vectors, dim=0, keepdim=True).squeeze(1)    # (1, C, H, W)
+                # print('noise.shape: ', noise.shape)
 
-                    topk_vectors = codebook[sims_index].squeeze(1)                                 # (topk, C, H, W)
-                    weights = th.nn.functional.softmax(sims_value / 0.1, dim=0)      # (topk)
-                    # print('weights: ', weights)
-                    
-                    noise = th.sum(weights[:, None, None, None] * topk_vectors, dim=0, keepdim=True)    # (1, C, H, W)
-                    # print(f'refine noise: shape {noise.shape} mean {noise.mean()} std {noise.std()} min {noise.min()} max {noise.max()}')
-                    # print()
+                pass
+
+            elif type(noise_refine_model) is SoftmaxAttention: # pure softmax attention
+
+                # codebook: (K, C, H, W)
+                # noise: (C, H, W)
+
+                anchor_noise_flat_norm = th.nn.functional.normalize(noise.view(1, -1), dim=1)
+                codebook_flat_norm     = th.nn.functional.normalize(codebook.view(codebook.shape[0], -1), dim=1)
+
+                cos_sim = th.matmul(anchor_noise_flat_norm, codebook_flat_norm.T).squeeze(0)
+
+                sims_value, sims_index = th.topk(cos_sim, k=noise_refine_model.top_k, largest=True)
+                sims_value = sims_value.view(-1)
+                sims_index = sims_index.view(-1)
+                # print('Non-learnable softmax attention')
+                # print('idxs: ', idxs)
+                
+                # ------- remove the anchor noise (z_t) from top k ---------
+                # idxs_index = th.nonzero(sims_index == idxs)
+                # print('idxs_index: ', idxs_index)
+                # sims_value = th.cat((sims_value[:idxs_index], sims_value[idxs_index+1:]))
+                # sims_index = th.cat((sims_index[:idxs_index], sims_index[idxs_index+1:]))
+
+                # print('sims_value: ', sims_value)
+                # print('sims_index: ', sims_index)
+
+                topk_vectors = codebook[sims_index].squeeze(1)                                 # (topk, C, H, W)
+                weights = th.nn.functional.softmax(sims_value / 0.1, dim=0)      # (topk)
+                # print('weights: ', weights)
+                
+                noise = th.sum(weights[:, None, None, None] * topk_vectors, dim=0, keepdim=True)    # (1, C, H, W)
+                # print(f'refine noise: shape {noise.shape} mean {noise.mean()} std {noise.std()} min {noise.min()} max {noise.max()}')
+                # print()
 
         # print('new noise.shape:', noise.shape)
         # no noise when t == 0
@@ -727,15 +731,17 @@ class GaussianDiffusion:  # initialize in function create_model_and_diffusion
         sample = out["mean"] + nonzero_mask * th.exp(0.5 * out["log_variance"]) * noise
 
         # # visualize
-        # if t.item() in [900, 500, 200, 150, 100, 50, 10]:
-        #     x_0 = out["pred_xstart"]
-        #     x_0 = ((x_0 + 1) * 127.5).clamp(0, 255).to(th.uint8)
-        #     x_0 = x_0.permute(0, 2, 3, 1)
-        #     x_0 = x_0.contiguous()
-        #     imgs = x_0.cpu().numpy()  # shape: (N, H, W, C)
-        #     im = Image.fromarray(imgs[0])
-        #     im.save(f"x_0_t____t_200_{t.item()}.png")
-        #     print('saved image')
+        if t.item() == 200:
+            dummy_x_0_t = out["pred_xstart"]
+            dummy_x_0_t = ((dummy_x_0_t + 1) * 127.5).clamp(0, 255).to(th.uint8).permute(0, 2, 3, 1).contiguous().cpu().numpy()   # shape: (N, H, W, C)
+            dummy_x_0_t = Image.fromarray(dummy_x_0_t[0])
+            dummy_x_0_t.save(f"../visualize/ddcm_from_1000_x_0_t__at__t_{t.item()}.png")
+
+            dummy_x_t = sample
+            dummy_x_t = ((dummy_x_t + 1) * 127.5).clamp(0, 255).to(th.uint8).permute(0, 2, 3, 1).contiguous().cpu().numpy()   # shape: (N, H, W, C)
+            dummy_x_t = Image.fromarray(dummy_x_t[0])
+            dummy_x_t.save(f"../visualize/ddcm_from_1000_x_t__at__t_{t.item()}.png")
+            print('saved image')
 
         return {"sample": sample, "pred_xstart": out["pred_xstart"],  "codebook_index": idxs, "noise": noise}
 
@@ -753,7 +759,6 @@ class GaussianDiffusion:  # initialize in function create_model_and_diffusion
         codebooks=None,
         received_indices=None,
         hq_img_path=None,         # high quality image path
-        noise_refine=False,         # if True, blend the noise with the codebook
         noise_refine_model=None
     ):
         """
@@ -782,17 +787,7 @@ class GaussianDiffusion:  # initialize in function create_model_and_diffusion
         else:
             print('>>>>>>>>> Sample at receiver\'s side, load the codebook indicies from file <<<<<<<<')
 
-        if noise_refine == False:
-            print('>>>>>>>>> Sample with Original DDCM <<<<<<<<')
-        else:
-            if (received_indices is None):
-                raise NotImplementedError("Noise refine applied only at receiver's side---> Please feed the received indices")
-
-            if (noise_refine_model is None):
-                print('>>>>>>>>> Refine noise with non-learnable softmax attention <<<<<<<<')
-            else:
-                print('>>>>>>>>> Refine noise with learnable network <<<<<<<<')
-        print()
+        print('type(noise_refine_model): ', type(noise_refine_model))
 
         final = None
         for sample in self.ddcm_sample_loop_progressive(
@@ -808,7 +803,6 @@ class GaussianDiffusion:  # initialize in function create_model_and_diffusion
             codebooks=codebooks,
             received_indices=received_indices,
             hq_img_path=hq_img_path,
-            noise_refine=noise_refine,
             noise_refine_model=noise_refine_model
 
         ):
@@ -829,7 +823,6 @@ class GaussianDiffusion:  # initialize in function create_model_and_diffusion
         codebooks=None,            # codebooks is already load from image_sample.py
         received_indices=None,
         hq_img_path=None,         # high quality image path
-        noise_refine=False,         # if True, blend the noise with the codebook
         noise_refine_model=None
     ):
         """
@@ -848,6 +841,71 @@ class GaussianDiffusion:  # initialize in function create_model_and_diffusion
         
         hq_img = load_hq_image(hq_img_path).to(device)
 
+
+        # DUMMY VISUALIZE
+        with th.no_grad():
+            def save_dummy_image(dummy_tensor, path):
+                dummy_tensor = ((dummy_tensor + 1) * 127.5).clamp(0, 255).to(th.uint8).permute(0, 2, 3, 1).contiguous().cpu().numpy()  # shape: (N, H, W, C)
+                dummy_tensor = Image.fromarray(dummy_tensor[0])
+                dummy_tensor.save(path)
+
+            dummy_t = 190
+            dummy_x_t_add_1 = self.q_sample(x_start=hq_img, t=th.tensor([dummy_t + 1] * 1, device=device))
+
+            dummy_x_t_without_refine = self.ddcm_sample(
+                        model,
+                        x=dummy_x_t_add_1,
+                        t=th.tensor([dummy_t] * 1, device=device),
+                        clip_denoised=clip_denoised,
+                        denoised_fn=denoised_fn,
+                        cond_fn=cond_fn,
+                        model_kwargs=model_kwargs,
+                        hq_img=hq_img,
+                        codebook=th.from_numpy(codebooks[dummy_t]).to(device),  # Sample from codebook,
+                        received_indices=received_indices,
+                        noise_refine_model=None,
+                        device=device
+                    )['sample']
+            save_dummy_image(dummy_x_t_without_refine, f"../visualize/[without refine noise] random_sample_x_t_at_{dummy_t}_sample_from_x_0.png")
+            dummy_x_0_t_minus_1_without_refine = self.p_mean_variance(
+                model,
+                dummy_x_t_without_refine,
+                th.tensor([dummy_t - 1] * 1, device=device),
+                clip_denoised=clip_denoised,
+                denoised_fn=denoised_fn,
+                model_kwargs=model_kwargs,
+            )['pred_xstart']
+            save_dummy_image(dummy_x_0_t_minus_1_without_refine, f"../visualize/[without refine noise] random_sample_x_0_t_minus_1_at_{dummy_t}_sample_from_x_0.png")
+
+            for dummy_time in range(dummy_t, 0, -1):
+                print('dummy time: ', dummy_time)
+                dummy_x_t_with_refine = self.ddcm_sample(
+                            model,
+                            x=dummy_x_t_add_1,
+                            t=th.tensor([dummy_time] * 1, device=device),
+                            clip_denoised=clip_denoised,
+                            denoised_fn=denoised_fn,
+                            cond_fn=cond_fn,
+                            model_kwargs=model_kwargs,
+                            hq_img=hq_img,
+                            codebook=th.from_numpy(codebooks[dummy_time]).to(device),  # Sample from codebook,
+                            received_indices=received_indices,
+                            noise_refine_model=noise_refine_model,
+                            device=device
+                        )['sample']
+                save_dummy_image(dummy_x_t_with_refine, f"../visualize/[with refine noise] random_sample_x_t_at_{dummy_time}_sample_from_x_0.png")
+                dummy_x_0_t_minus_1_with_refine = self.p_mean_variance(
+                    model,
+                    dummy_x_t_with_refine,
+                    th.tensor([dummy_time - 1] * 1, device=device),
+                    clip_denoised=clip_denoised,
+                    denoised_fn=denoised_fn,
+                    model_kwargs=model_kwargs,
+                )['pred_xstart']
+                save_dummy_image(dummy_x_0_t_minus_1_with_refine, f"../visualize/[with refine noise] random_sample_x_0_t_minus_1_at_{dummy_time}_sample_from_x_0.png")
+                dummy_x_t_add_1 = dummy_x_t_with_refine
+            
+
         # Inference steps
         indices = list(range(self.num_timesteps))[::-1]
 
@@ -863,6 +921,7 @@ class GaussianDiffusion:  # initialize in function create_model_and_diffusion
         compressed_representation = np.ones(self.num_timesteps).astype(np.int16) * (-1)     # to save the codebook indices of this sampling process
 
         for i in indices:
+            # print('timestep: ', i)
             # Create timestep tensor
             t = th.tensor([i] * shape[0], device=device)
             # print('t:', t); print('t.shape:', t.shape)
@@ -878,7 +937,6 @@ class GaussianDiffusion:  # initialize in function create_model_and_diffusion
                     hq_img=hq_img,
                     codebook=th.from_numpy(codebooks[i]).to(device),  # Sample from codebook,
                     received_indices=received_indices,
-                    noise_refine=noise_refine,
                     noise_refine_model=noise_refine_model,
                     device=device
                 )
@@ -926,66 +984,64 @@ class GaussianDiffusion:  # initialize in function create_model_and_diffusion
             if verbose:
                 print('Step 2: Add noise into HQ image')
             batch_size = 1
-            t_tensor = th.tensor([timestep] * batch_size, device=device)
-            noise = th.randn_like(x_start).to(device)
-            x_t = self.q_sample(x_start=x_start, t=t_tensor, noise=noise)
+            x_t_add_1 = self.q_sample(x_start=x_start, t=th.tensor([timestep + 1] * batch_size, device=device))
 
-            # --------- DENOISE TO x_(t-1) ----------
-            if verbose:
-                print('Step 3: Denoise to x_(t-1)')
+            # -------- CREATE 5 CANDIDATES OF x_t -------
 
-            top_k_list = [1, 2, 3, 5, 10]
-            candidate_list = []
-            for top_k in top_k_list:
-                # print(f'top k: {top_k}')
-                with th.no_grad():
-                    out = self.ddcm_sample(     # x_{t-1}
-                        model,
-                        x=x_t,
-                        t=t_tensor,
-                        clip_denoised=clip_denoised,
-                        denoised_fn=denoised_fn,
-                        cond_fn=cond_fn,
-                        model_kwargs=model_kwargs,
-                        hq_img=x_start,
-                        codebook=th.from_numpy(codebook).to(device),  # Sample from codebook,
-                        received_indices=None,
-                        noise_refine=True,  # if True, blend the noise with the codebook
-                        noise_refine_model=None, # BUG here
-                        top_k=top_k,
-                        device=None
-                    )    # out:     {"sample": sample, "pred_xstart": out["pred_xstart"],  "codebook_index": idxs}
-                    candidate_list.append(out)
-            #         print('pred_xstart: mean: ', out['pred_xstart'].mean(), ' min: ', out['pred_xstart'].min(), 'max: ', out['pred_xstart'].max())
-            #         print('sample: mean: ', out['sample'].mean(), ' min: ', out['sample'].min(), 'max: ', out['sample'].max())
-            #         print('codebook_index: ', out['codebook_index'])
-            #         print()
-            # print('---------------------------------')
-            # print('out[pred_xstart].shape ', out['pred_xstart'].shape)      # torch.Size([1, 3, 256, 256])
-            # print('x_start.shape ', x_start.shape)                          # torch.Size([1, 3, 256, 256])
-            r_t = x_start - out['pred_xstart']
 
-            noise_candidate_list = [out['noise'] for out in candidate_list]
+            with th.no_grad():
+                out_x_t = self.p_mean_variance(
+                    model,
+                    x_t_add_1,
+                    th.tensor([timestep] * batch_size, device=device),
+                    clip_denoised=clip_denoised,
+                    denoised_fn=denoised_fn,
+                    model_kwargs=model_kwargs,
+                )
+
+            codebook = th.from_numpy(codebook).to(device).type(th.float32) 
+            sims = th.einsum('kuwv,buwv->kb', codebook, x_start - out_x_t["pred_xstart"])
+            idxs = sims.argmax(0)
+            anchor_noise = codebook[idxs]
+
+            x_t_candidate_list = []
+
+            # ------------ Find top 5 similar vectors to anchor noise (including itself) -----------
+
+            anchor_noise_flat_norm = th.nn.functional.normalize(anchor_noise.view(1, -1), dim=1)
+            codebook_flat_norm     = th.nn.functional.normalize(codebook.view(codebook.shape[0], -1), dim=1)
+
+            cos_sim = th.matmul(anchor_noise_flat_norm, codebook_flat_norm.T).squeeze(0)
+
+            sims_value, sims_index = th.topk(cos_sim, k=5, largest=True)
+            sims_index = sims_index.view(-1)
+            # print('sims_index: ', sims_index)
+              
+            top5_vectors = codebook[sims_index]                             # (topk, 1, C, H, W)
+            noise_candidate_list = []
+            for i in range(top5_vectors.shape[0]):
+                noise_candidate_list.append(top5_vectors[i])
+                x_t_candidate_list.append(out_x_t['mean'] + th.exp(0.5 * out_x_t['log_variance']) * top5_vectors[i])
+
+            
+            r_t = x_start - out_x_t['pred_xstart']
+
             x_0_list = []
-            for out in candidate_list:
+            for x_t in x_t_candidate_list:          # mỗi 1 out là 1 candidate của x_t
                 with th.no_grad():
-                    x_0_list.append(self.ddcm_sample(
+                    x_0_list.append(self.p_mean_variance(
                         model,
-                        x=out['sample'],
-                        t=th.tensor([timestep - 1] * batch_size, device=device),
+                        x_t,
+                        th.tensor([timestep - 1] * batch_size, device=device),
                         clip_denoised=clip_denoised,
                         denoised_fn=denoised_fn,
-                        cond_fn=cond_fn,
                         model_kwargs=model_kwargs,
-                        hq_img=x_start,
-                        codebook=th.from_numpy(codebook).to(device),  # Sample from codebook,
-                        device=None
-                    )['pred_xstart'])
+                )['pred_xstart'] )
             hf_info_list = [laplacian_kernel(x_0) for x_0 in x_0_list]
 
             # --------- SAMPLE FROM CODEBOOK ---------
             # retrieved_index = out["codebook_index"].cpu().numpy().item() if type(out["codebook_index"]) is th.Tensor else out["codebook_index"]
-            return noise_candidate_list, hf_info_list, hf_star, r_t, x_0_list, x_start, x_t
+            return noise_candidate_list, hf_info_list, hf_star, r_t, x_0_list, x_start, x_t_add_1
 
     def sample_x_0_t_minus_1_for_lpips(self, model, batch_x_t, timestep, clip_denoised, model_kwargs, batch_z_t_refined, device=None):
 
@@ -1027,23 +1083,20 @@ class GaussianDiffusion:  # initialize in function create_model_and_diffusion
         mu_x_t,
         log_sigma_t,
         anchor_noise,
-        x,
         t,                  # t: current timestep
         clip_denoised=True,
         denoised_fn=None,
-        cond_fn=None,
         model_kwargs=None,
         hq_img=None,       # high quality image
         codebook=None,
-        received_indices=None,
         device=None
     ):
         hf_star = laplacian_kernel(hq_img)
 
         noise_candidate_list = []
         noise_candidate_list.append(anchor_noise)
-        x_t_minus_1_candidate = []
-        x_t_minus_1_candidate.append(mu_x_t + th.exp(0.5 * log_sigma_t) * anchor_noise)
+        x_t_candidate = []
+        x_t_candidate.append(mu_x_t + th.exp(0.5 * log_sigma_t) * anchor_noise)
         
         # print('anchor_noise.shape: ', anchor_noise.shape)
 
@@ -1064,29 +1117,21 @@ class GaussianDiffusion:  # initialize in function create_model_and_diffusion
             softmax_combination = th.sum(weights[:, None, None, None] * topk_vectors, dim=0, keepdim=True)    # (1, C, H, W)
 
             noise_candidate_list.append(softmax_combination)
-            x_t_minus_1_candidate.append(mu_x_t + th.exp(0.5 * log_sigma_t) * softmax_combination)
+            x_t_candidate.append(mu_x_t + th.exp(0.5 * log_sigma_t) * softmax_combination)
 
             # print('softmax_combination.shape: ', softmax_combination.shape)
-            
-
-            pass
         
         x_0_list = []
-        for x_t_minus_1 in x_t_minus_1_candidate:
+        for x_t in x_t_candidate:
             with th.no_grad():
                 batch_size = 1
-                x_0_list.append(self.ddcm_sample(           # SAMPLE x_0|t-1
-                    model,
-                    x=x_t_minus_1,
-                    t=th.tensor([t.item() - 1] * batch_size, device=device),
-                    clip_denoised=clip_denoised,
-                    denoised_fn=denoised_fn,
-                    cond_fn=cond_fn,
-                    model_kwargs=model_kwargs,
-                    hq_img=hq_img,
-                    codebook=codebook,  # Sample from codebook,
-                    received_indices=received_indices,      # using received info (which is different to transmitter's side)
-                    device=None
+                x_0_list.append(self.p_mean_variance(
+                        model,
+                        x_t,
+                        th.tensor([t.item() - 1] * batch_size, device=device),
+                        clip_denoised=clip_denoised,
+                        denoised_fn=denoised_fn,
+                        model_kwargs=model_kwargs
                 )['pred_xstart'])
         hf_info_list = [laplacian_kernel(x_0) for x_0 in x_0_list]
 
