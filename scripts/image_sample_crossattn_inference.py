@@ -23,6 +23,7 @@ from guided_diffusion.script_util import (
 from matplotlib import pyplot as plt
 from datetime import datetime
 from PIL import Image
+from guided_diffusion.image_util import Transmitter, Receiver
 
 def create_argparser():
     defaults = dict(
@@ -38,9 +39,9 @@ def create_argparser():
     return parser
 
 from noise_refine_model.crossattn import PixelCrossAttentionRefiner
-from noise_refine_model.transmitter_top_5 import Transmitter_top_5
 
 def main():
+    # dummy_user_role = Receiver('/mnt/HDD2/phudh/custom-guided-diffusion/compressed_info/compressed_representation_date_20250630_time_1411.json')
     start_time = time.perf_counter()
     args = create_argparser().parse_args()
 
@@ -117,36 +118,29 @@ def main():
             clip_denoised=args.clip_denoised,
             model_kwargs=model_kwargs,
             codebooks=_codebooks,
-
-            # received_indices=None,            
-            # received_indices=np.load('/mnt/HDD2/phudh/custom-guided-diffusion/compressed_info/compressed_representation_date_20250611_time_1510.npy'),
-            received_indices=np.load('/mnt/HDD2/phudh/custom-guided-diffusion/compressed_info/compressed_representation_date_20250520_time_1037.npy'),
+            user_role=Receiver('/mnt/HDD2/phudh/custom-guided-diffusion/compressed_info/compressed_representation_date_20250630_time_1411.json'),
 
             # hq_img_path="/mnt/HDD2/phudh/custom-guided-diffusion/hq_img/imagenet-256/academic_gown/000.jpg",
             hq_img_path="/mnt/HDD2/phudh/custom-guided-diffusion/hq_img/imagenet-256/academic_gown/004.jpg",
 
             # -----------------
-
-            # received_indices=np.load('/mnt/HDD2/phudh/custom-guided-diffusion/compressed_info/compressed_representation_date_20250611_time_1533.npy'),
-            # received_indices=np.load('/mnt/HDD2/phudh/custom-guided-diffusion/compressed_info/compressed_representation_date_20250611_time_1536.npy'),
-
             # hq_img_path='/mnt/HDD2/phudh/custom-guided-diffusion/hq_img/CelebDataProcessed/Jennifer Lopez/8.jpg',
             # hq_img_path='/mnt/HDD2/phudh/custom-guided-diffusion/hq_img/CelebDataProcessed/Leonardo DiCaprio/20.jpg',
 
             # -----------------
-
-            # received_indices=np.load('/mnt/HDD2/phudh/custom-guided-diffusion/compressed_info/compressed_representation_date_20250611_time_1635.npy'),
-            # received_indices=np.load('/mnt/HDD2/phudh/custom-guided-diffusion/compressed_info/compressed_representation_date_20250611_time_1647.npy'),
-
             # hq_img_path='/mnt/HDD2/phudh/custom-guided-diffusion/hq_img/CelebDataProcessed/Barack Obama/0.jpg',
             # hq_img_path='/mnt/HDD2/phudh/custom-guided-diffusion/hq_img/CelebDataProcessed/Barack Obama/10.jpg',
 
             # -----------------
 
-            noise_refine_model=refine_net,
-            # noise_refine_model=None
+            # noise_refine_model=refine_net,
+            noise_refine_model=None
 
         )
+
+        for i, noise in enumerate(diffusion.refine_noise_list):
+            if i < len(diffusion.refine_noise_list) - 1:
+                print('i: ', i, ' difference between noise: ', th.nn.L1Loss()(diffusion.refine_noise_list[i], diffusion.refine_noise_list[i+1]))
 
         sample = ((sample + 1) * 127.5).clamp(0, 255).to(th.uint8)
         sample = sample.permute(0, 2, 3, 1)
