@@ -13,6 +13,11 @@ repo_folder_path = "/mnt/HDD2/phudoan/my_stuff/custom-guided-diffusion/"
 os.environ["CUDA_VISIBLE_DEVICES"] = "1"
 ```
 
+* Install pytorch with cuda:
+```
+pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121
+```
+
 # guided-diffusion
 
 This is the codebase for [Diffusion Models Beat GANS on Image Synthesis](http://arxiv.org/abs/2105.05233).
