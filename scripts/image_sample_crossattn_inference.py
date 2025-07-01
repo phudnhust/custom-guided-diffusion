@@ -42,6 +42,7 @@ from noise_refine_model.crossattn import PixelCrossAttentionRefiner
 
 def main():
     # dummy_user_role = Receiver('/mnt/HDD2/phudh/custom-guided-diffusion/compressed_info/compressed_representation_date_20250630_time_1411.json')
+    print('branch: send_more_info')
     start_time = time.perf_counter()
     args = create_argparser().parse_args()
 
