@@ -734,7 +734,7 @@ class GaussianDiffusion:  # initialize in function create_model_and_diffusion
                     print('using basedline DDCM')
                     pass
                 elif type(noise_refine_model) is PixelCrossAttentionRefiner:
-                    if (t.item() > 0) and (t.item() < 200):
+                    if (t.item() > 0) and (t.item() < 400):
 
                         noise_candidate_list, hf_info_list, hf_star, x_0_list = self.get_5_candidates_for_inference(model,
                                                                     out['mean'],
@@ -770,6 +770,10 @@ class GaussianDiffusion:  # initialize in function create_model_and_diffusion
 
                         # noise = 0.5* (hq_img - out["pred_xstart"]) + 0.5 * noise_refine_model(batch_hf_star, batch_hf_info, batch_noise_candidate)
                         noise = noise_refine_model(batch_hf_star, batch_hf_info, batch_noise_candidate)
+                        print('noise mean: ', noise.mean().item(),
+                              ' std: ', noise.std().item(),
+                              ' min: ', noise.min().item(),
+                              ' max: ', noise.max().item())
                         self.refine_noise_list.append(noise)
 
                         # if t.item() == 190:
@@ -1168,7 +1172,7 @@ class GaussianDiffusion:  # initialize in function create_model_and_diffusion
         anchor_noise_flat_norm = th.nn.functional.normalize(anchor_noise.view(1, -1), dim=1)
         codebook_flat_norm     = th.nn.functional.normalize(codebook.view(codebook.shape[0], -1), dim=1)
 
-        cos_sim = th.matmul(anchor_noise_flat_norm, codebook_flat_norm.T).squeeze(0)
+        cos_sim = th.matmul(anchor_noise_flat_norm, codebook_flat_norm.T).squeeze(0)        # top 5 noise similar to anchor noise
         sims_value, sims_index = th.topk(cos_sim, k=5, largest=True)
         sims_index = sims_index.view(-1)
         top5_vectors = codebook[sims_index]
@@ -1193,14 +1197,8 @@ class GaussianDiffusion:  # initialize in function create_model_and_diffusion
                 )['pred_xstart'])
         hf_info_list = [laplacian_kernel(x_0) for x_0 in x_0_list]
 
-
-        
-        def save_dummy_image(dummy_tensor, path):
-            dummy_tensor = ((dummy_tensor + 1) * 127.5).clamp(0, 255).to(th.uint8).permute(0, 2, 3, 1).contiguous().cpu().numpy()  # shape: (N, H, W, C)
-            dummy_tensor = Image.fromarray(dummy_tensor[0])
-            dummy_tensor.save(path)
-        for i, x_0 in enumerate(x_0_list):
-            save_dummy_image(x_0, f'../visualize/x_0_candidate_{i}_timestep_{t.item()}.png')
+        # for i, x_0 in enumerate(x_0_list):
+            # save_tensor_as_img(x_0, f'../visualize/x_0_candidate_{i}_timestep_{t.item()}.png')
 
         return noise_candidate_list, hf_info_list, hf_star, x_0_list
 ################################
