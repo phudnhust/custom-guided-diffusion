@@ -545,7 +545,7 @@ class GaussianDiffusion:  # initialize in function create_model_and_diffusion
 
 ################################
 
-    def ddcm_sample(        # called in function ddcm_sample
+    def ddcm_sample(        # called in function ddcm_sample_loop_progressive
         self,
         model,
         x,

@@ -95,18 +95,44 @@ class PixelCrossAttentionRefiner(nn.Module):
         )
         Key = k_proj(Key).permute(1,0,2)  # → [K, B*N, E]
 
+        """
+            CODE CŨ (dùng output của nn.MultiheadAttention)
+            (trước khi vào attention: chiếu linear đối với value -> không gian attention,
+            sau khi tính xong softmax(QK^T) thì chiếu linear một lần nữa -> để đưa về không gian gốc)
+        """
         # flatten Value: [B, K, Cv, H, W] → [B*N, K, Cv]
         # print('type(B, N, K):', type(B), type(N), type(K))  
-        Value = V_feats.permute(0,1,3,4,2).reshape(B*N, K, -1)
-        assert Value.shape[2] == v_proj.in_features, (
-            f"Value has {Value.shape[2]} dims but v_proj expects {v_proj.in_features}"
-        )
-        Value = v_proj(Value).permute(1,0,2)  # → [K, B*N, E]
+        # Value = V_feats.permute(0,1,3,4,2).reshape(B*N, K, -1)
+        # assert Value.shape[2] == v_proj.in_features, (
+            # f"Value has {Value.shape[2]} dims but v_proj expects {v_proj.in_features}"
+        # )
+        # print('before projection: Value.shape: ', Value.shape)     # ([2097152, 5, 3])
+        # Value = v_proj(Value).permute(1,0,2)  # → [K, B*N, E]
+        # print('after projection: Value.shape: ', Value.shape)     # ([5, 2097152, 3])
 
         # multi‐head attention
-        out, _ = attn(Query, Key, Value)     # [1, B*N, E]
-        out = out.squeeze(0)            # [B*N, E]
+        # out, out_weights = attn(Query, Key, Value)     # [1, B*N, E]
+        # out = out.squeeze(0)            # [B*N, E]
+        # out = out.reshape(B, H, W, -1).permute(0,3,1,2)
+
+        # print('attention weights: shape', out_weights.shape)    # [2094152, 1, 5]
+
+        """
+            CODE MỚI (chỉ dùng weight của nn.MultiheadAttention)
+        """
+        Value = V_feats.permute(0,1,3,4,2).reshape(B*N, K, -1)      # [B*H*W, K, Cv] = [2097152, 5, 3]
+        
+        dummy_value_for_attn = torch.zeros((K,B*N, self.feat_dim), device=Value.device)  # [K, B*N, C] = [5, 2097152, 3]
+        _, attention_weights = attn(Query, Key, dummy_value_for_attn)   # [B*N, 1, K] = [2097152, 1, 5]
+        attention_weights = nn.functional.normalize(attention_weights, p=2, dim=-1)
+
+        # print('attention_weights: ', attention_weights)     # check constraint sum(square) = 1 -> OK
+
+
+        out = torch.bmm(attention_weights, Value).squeeze(1)  # [B*N, Cv] = [2097152, 3]
         out = out.reshape(B, H, W, -1).permute(0,3,1,2)
+        # print(f'out: mean {out.mean().item():.4f}, std {out.std().item():.4f}, min {out.min().item():.4f}, max {out.max().item():.4f}')
+
         return out                      # [B, E, H, W]
 
     def forward(self, HF_star, HF_cands, Z_cands):
