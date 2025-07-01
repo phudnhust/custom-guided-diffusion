@@ -734,7 +734,7 @@ class GaussianDiffusion:  # initialize in function create_model_and_diffusion
                     print('using basedline DDCM')
                     pass
                 elif type(noise_refine_model) is PixelCrossAttentionRefiner:
-                    if (t.item() > 0) and (t.item() < 400):
+                    if (t.item() > 0) and (t.item() < 200):
 
                         noise_candidate_list, hf_info_list, hf_star, x_0_list = self.get_5_candidates_for_inference(model,
                                                                     out['mean'],
