@@ -785,33 +785,7 @@ class GaussianDiffusion:  # initialize in function create_model_and_diffusion
                     # codebook: (K, C, H, W)
                     # noise: (C, H, W)
 
-                    anchor_noise_flat_norm = th.nn.functional.normalize(noise.view(1, -1), dim=1)
-                    codebook_flat_norm     = th.nn.functional.normalize(codebook.view(codebook.shape[0], -1), dim=1)
-
-                    cos_sim = th.matmul(anchor_noise_flat_norm, codebook_flat_norm.T).squeeze(0)
-
-                    sims_value, sims_index = th.topk(cos_sim, k=noise_refine_model.top_k, largest=True)
-                    sims_value = sims_value.view(-1)
-                    sims_index = sims_index.view(-1)
-                    # print('Non-learnable softmax attention')
-                    # print('idxs: ', idxs)
-                    
-                    # ------- remove the anchor noise (z_t) from top k ---------
-                    # idxs_index = th.nonzero(sims_index == idxs)
-                    # print('idxs_index: ', idxs_index)
-                    # sims_value = th.cat((sims_value[:idxs_index], sims_value[idxs_index+1:]))
-                    # sims_index = th.cat((sims_index[:idxs_index], sims_index[idxs_index+1:]))
-
-                    # print('sims_value: ', sims_value)
-                    # print('sims_index: ', sims_index)
-
-                    topk_vectors = codebook[sims_index].squeeze(1)                                 # (topk, C, H, W)
-                    weights = th.nn.functional.softmax(sims_value / 0.1, dim=0)      # (topk)
-                    # print('weights: ', weights)
-                    
-                    noise = th.sum(weights[:, None, None, None] * topk_vectors, dim=0, keepdim=True)    # (1, C, H, W)
-                    # print(f'refine noise: shape {noise.shape} mean {noise.mean()} std {noise.std()} min {noise.min()} max {noise.max()}')
-                    # print()
+                    noise = noise_refine_model(codebook, noise)
 
         # print('new noise.shape:', noise.shape)
         # no noise when t == 0
