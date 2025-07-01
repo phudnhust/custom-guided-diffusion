@@ -34,8 +34,6 @@ def laplacian_kernel(img_tensor):
 
     return high_freq
 
-import torch
-import torch.nn as nn
 
 class PixelCrossAttentionRefiner(nn.Module):
     def __init__(self, feat_dim, embed_dim, num_heads):

@@ -72,7 +72,8 @@ def main():
     all_labels = []
 
     # repo_folder_path = "/mnt/HDD2/phudoan/my_stuff/custom-guided-diffusion/"  # (server 147)
-    repo_folder_path = "/mnt/HDD2/phudh/custom-guided-diffusion/"    # (server 118 or 92)
+    repo_folder_path = "/mnt/HDD2/phu2/custom-guided-diffusion/"  # (server 148)
+    # repo_folder_path = "/mnt/HDD2/phudh/custom-guided-diffusion/"    # (server 118 or 92)
     
     # Generate codebook
     start_time = time.perf_counter()
@@ -97,7 +98,7 @@ def main():
     start_time = time.perf_counter()
     
     #---------------- REFINE NET INITIALIZE -----------------------
-    checkpoint = th.load(repo_folder_path + 'refine_net_epoch_50.pth')
+    checkpoint = th.load(repo_folder_path + 'train_with_timestep_from_1_to_200/refine_net_epoch_50.pth')
     refine_net = PixelCrossAttentionRefiner(feat_dim=3, embed_dim=3, num_heads=3).to(dist_util.dev())  
     refine_net.load_state_dict(checkpoint['model_state_dict'])
 
@@ -118,10 +119,12 @@ def main():
             clip_denoised=args.clip_denoised,
             model_kwargs=model_kwargs,
             codebooks=_codebooks,
-            user_role=Receiver('/mnt/HDD2/phudh/custom-guided-diffusion/compressed_info/compressed_representation_date_20250630_time_1411.json'),
 
-            # hq_img_path="/mnt/HDD2/phudh/custom-guided-diffusion/hq_img/imagenet-256/academic_gown/000.jpg",
-            hq_img_path="/mnt/HDD2/phudh/custom-guided-diffusion/hq_img/imagenet-256/academic_gown/004.jpg",
+            user_role=Transmitter(),
+            # user_role=Receiver('/mnt/HDD2/phudh/custom-guided-diffusion/compressed_info/compressed_representation_date_20250630_time_1411.json'),
+
+            hq_img_path="/mnt/HDD2/phu2/custom-guided-diffusion/hq_img/imagenet-256/academic_gown/000.jpg",
+            # hq_img_path="/mnt/HDD2/phu2/custom-guided-diffusion/hq_img/imagenet-256/academic_gown/004.jpg",
 
             # -----------------
             # hq_img_path='/mnt/HDD2/phudh/custom-guided-diffusion/hq_img/CelebDataProcessed/Jennifer Lopez/8.jpg',

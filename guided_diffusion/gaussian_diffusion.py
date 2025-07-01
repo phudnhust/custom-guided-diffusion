@@ -799,8 +799,8 @@ class GaussianDiffusion:  # initialize in function create_model_and_diffusion
             )
 
         sample = out["mean"] + nonzero_mask * th.exp(0.5 * out["log_variance"]) * noise
-        save_tensor_as_img(out['pred_xstart'], '../visualize_x_0_t/x_0_t_timestep' + str(t.item()) + '.png')
-        save_tensor_as_img(sample, '../visualize_x_t/x_t_timestep_' + str(t.item()) + '.png')
+        # save_tensor_as_img(out['pred_xstart'], '../visualize_x_0_t/x_0_t_timestep' + str(t.item()) + '.png')
+        # save_tensor_as_img(sample, '../visualize_x_t/x_t_timestep_' + str(t.item()) + '.png')
 
         return {"sample": sample, "pred_xstart": out["pred_xstart"],  "codebook_index": idxs.tolist() if isinstance(idxs, th.Tensor) else -1, "noise": noise}
 
@@ -1009,7 +1009,7 @@ class GaussianDiffusion:  # initialize in function create_model_and_diffusion
                     compressed_representation[i] = out['codebook_index']
 
         if isinstance(user_role, Transmitter):
-            with open('/mnt/HDD2/phudh/custom-guided-diffusion/compressed_info/compressed_representation' + datetime.now().strftime("_date_%Y%m%d_time_%H%M")  + '.json', 'w') as f:
+            with open('../compressed_info/compressed_representation' + datetime.now().strftime("_date_%Y%m%d_time_%H%M")  + '.json', 'w') as f:
                 json.dump(compressed_representation, f, indent=4)
                 print('Compressed representation saved to JSON file')
 
