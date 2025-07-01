@@ -45,6 +45,7 @@ import torch.nn as nn
 import torch.optim as optim 
 
 def main():
+    print('branch: send_more_info')
     start_time = time.perf_counter()
     args = create_argparser().parse_args()
 
@@ -244,7 +245,7 @@ def main():
             epoch_loss_list.append(loss.item())
 
         if (epoch > 0 and epoch % 50 == 0) or epoch == n_epoch-1:
-            refine_net.save_checkpoint(optimizer, epoch, path=repo_folder_path + f'train_with_timestep_from_1_to_400/refine_net_epoch_{epoch}.pth')
+            refine_net.save_checkpoint(optimizer, epoch, path=repo_folder_path + f'send_more_info_train_with_timestep_from_1_to_400/refine_net_epoch_{epoch}.pth')
         epoch_loss = np.mean(epoch_loss_list)
         print('epoch_loss:', epoch_loss)
         epoches_loss_list.append(np.mean(epoch_loss))

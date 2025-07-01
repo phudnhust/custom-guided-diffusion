@@ -41,7 +41,7 @@ def create_argparser():
 from noise_refine_model.crossattn import PixelCrossAttentionRefiner
 
 def main():
-    # dummy_user_role = Receiver('/mnt/HDD2/phudh/custom-guided-diffusion/compressed_info/compressed_representation_date_20250630_time_1411.json')
+    # dummy_user_role = Receiver('/mnt/HDD2/phu2/custom-guided-diffusion/compressed_info/compressed_representation_date_20250702_time_0043.json')
     print('branch: send_more_info')
     start_time = time.perf_counter()
     args = create_argparser().parse_args()
@@ -121,22 +121,22 @@ def main():
             model_kwargs=model_kwargs,
             codebooks=_codebooks,
 
-            user_role=Transmitter(),
+            # user_role=Transmitter(),
 
-            # user_role=Receiver('/mnt/HDD2/phu2/custom-guided-diffusion/compressed_info/compressed_representation_date_20250701_time_1630.json'),
+            # user_role=Receiver(''),
             # hq_img_path="/mnt/HDD2/phu2/custom-guided-diffusion/hq_img/imagenet-256/academic_gown/000.jpg",
 
-            # user_role=Receiver('/mnt/HDD2/phu2/custom-guided-diffusion/compressed_info/compressed_representation_date_20250701_time_1648.json'),
+            # user_role=Receiver(''),
             # hq_img_path="/mnt/HDD2/phu2/custom-guided-diffusion/hq_img/imagenet-256/academic_gown/004.jpg",
 
             # -----------------
-            # user_role=Receiver('/mnt/HDD2/phu2/custom-guided-diffusion/compressed_info/compressed_representation_date_20250701_time_1703.json'),
+            # user_role=Receiver(''),
             # hq_img_path='/mnt/HDD2/phu2/custom-guided-diffusion/hq_img/CelebDataProcessed/Jennifer Lopez/8.jpg',
 
-            # user_role=Receiver('/mnt/HDD2/phu2/custom-guided-diffusion/compressed_info/compressed_representation_date_20250701_time_1709.json'),
+            # user_role=Receiver(''),
             # hq_img_path='/mnt/HDD2/phu2/custom-guided-diffusion/hq_img/CelebDataProcessed/Leonardo DiCaprio/20.jpg',
 
-            # user_role=Receiver(''),
+            user_role=Receiver('/mnt/HDD2/phu2/custom-guided-diffusion/compressed_info/compressed_representation_date_20250702_time_0043.json'),
             hq_img_path='/mnt/HDD2/phu2/custom-guided-diffusion/hq_img/CelebDataProcessed/Barack Obama/15.jpg',
 
             # -----------------

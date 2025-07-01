@@ -612,116 +612,18 @@ class GaussianDiffusion:  # initialize in function create_model_and_diffusion
                 residual = hq_img - out["pred_xstart"]
                 sims = th.einsum('kuwv,buwv->kb', codebook, residual)
 
-                ########## SEND ONLY 1 INDEX / TIMESTEP ############
-                idxs = sims.argmax(0)
-                noise = codebook[idxs]
-                ######################
+                noise = codebook[sims.argmax(0)]          # noise to add into mean: still the best similar noise to residual
 
                 ########## SEND 5 INDICES / TIMESTEP ############
-
-                # if t.item() >= 200:
-                #     idxs = sims.argmax(0)
-                #     noise = codebook[idxs]
-                # else:
-                #     sim_values, idxs = th.topk(sims, k=5, largest=True, dim=0) 
-                #     print('idxs: ', idxs)
-                
-                #     topk_vectors = codebook[idxs]                                 # (5, 1, C, H, W)
-                    
-                    # for _i in range(topk_vectors.shape[0]):
-                    #     save_tensor_as_img(self.p_mean_variance(
-                    #         model,
-                    #         out["mean"] + th.exp(0.5 * out["log_variance"]) * topk_vectors[_i],
-                    #         th.tensor([t.item() - 1] * 1, device=device),
-                    #         clip_denoised=clip_denoised,
-                    #         denoised_fn=denoised_fn,
-                    #         model_kwargs=model_kwargs,
-                    #     )['pred_xstart'], f'../visualize/x_0_t-1_noise_{_i}_timestep_{t.item()}.png')
-                    
-
-                    # SOFTMAX ATTENTION
-                    # softmax_temperature = 1
-                    # weights = th.nn.functional.softmax(sim_values / softmax_temperature, dim=0)      # (topk)   ()
-                    # print('sim values: ', sim_values)
-                    # print('weights: ', weights)
-                    # noise = th.sum(weights[:, None, None, None] * topk_vectors, dim=0, keepdim=True).squeeze(1)    # (1, C, H, W)
-
-                    ########################################
-
-                    # # LINEAR REGRESSION
-                    # a, b, c, d, e = [topk_vectors[i].flatten() for i in range(topk_vectors.shape[0])]  # (5, C*H*W)
-                    # G = residual.flatten()
-
-                    # A = th.stack([a, b, c, d, e], dim=1)  # shape [N, 5]
-                    # G = G.view(-1, 1)                        # shape [N, 1]
-
-                    # # Solve least squares: w = (A^T A)^-1 A^T G
-                    # w = th.linalg.lstsq(A, G).solution
-                    # print("Optimal weights:", w.squeeze())
-                    # noise = (A @ w).view_as(residual)  # reshape if needed
-
-                    ########################################
-
-                    # # # CONSTRAINT SUM_TO_ONE
-                    # a, b, c, d, e = [topk_vectors[i] for i in range(topk_vectors.shape[0])]  # (5, C*H*W)
-                    # G = residual
-
-                    # A = th.stack([a, b, c, d, e], dim=0).reshape(5, -1).T  # [N, 5]
-                    # G = G.reshape(-1, 1)  # [N, 1]
-
-                    # # Step 2: Solve using Lagrange multipliers
-                    # # Solve: [2AᵀA  1] [w]   = [2AᵀG]
-                    # #        [1ᵀ     0] [λ]     [1]
-                    # AT_A = A.T @ A           # [5, 5]
-                    # AT_G = A.T @ G           # [5, 1]
-                    # ones = th.ones(1, 5, device=A.device)  # [1, 5]
-
-                    # # Build KKT matrix and RHS
-                    # top = th.cat([2 * AT_A,     ones.T], dim=1)     # [5, 6]
-                    # bottom = th.cat([ones, th.zeros(1, 1).to(A.device)], dim=1)  # [1, 6]
-                    # KKT = th.cat([top, bottom], dim=0)              # [6, 6]
-
-                    # rhs = th.cat([2 * AT_G, th.ones(1, 1, device=A.device)], dim=0)  # [6, 1]
-
-                    # # Step 3: Solve linear system
-                    # solution = th.linalg.solve(KKT, rhs)  # [6, 1]
-                    # w = solution[:5].squeeze()  # [5]
-
-                    # # Step 4: Apply weights to reconstruct
-                    # noise = (A @ w.view(-1, 1)).view_as(residual)
-
-                    # print("Weights (sum to 1):", w)
-                    # print("Sum of weights:", w.sum())
-
-                    ########################################
-
-                    # # LINEAR REGRESSION WITH NON-DEVIATED CONSTRAINT
-                    # # Flatten and stack tensors: A is [N, 5], G is [N, 1]
-                    # a, b, c, d, e = [topk_vectors[i].flatten() for i in range(topk_vectors.shape[0])]  # (5, C*H*W)
-                    # G = residual.flatten()
-
-                    # A = th.stack([a, b, c, d, e], dim=0).reshape(5, -1).T  # shape [N, 5]
-                    # G = G.reshape(-1, 1)  # shape [N, 1]
-
-                    # # Step 1: Unconstrained least squares
-                    # w_unconstrained = th.linalg.lstsq(A, G).solution  # [5, 1]
-
-                    # # Step 2: Normalize to enforce sum(w_i^2) = 1
-                    # w = w_unconstrained / w_unconstrained.norm(p=2)
-                    # print('Optimal weights (normalized):', w.squeeze())
-
-                    # # Step 3: Use weights to reconstruct G_hat
-                    # noise = (A @ w).view_as(residual)
-
-                    # print(f'noise mean: { noise.mean().item()}, std: {noise.std().item()}, min: {noise.min().item()}, max: {noise.max().item()}')
-                    # print('l1 loss between noise and residual: ', th.nn.L1Loss()(noise, residual))
-
+                _, idxs = th.topk(sims, k=5, largest=True, dim=0) 
+                print('idxs: ', idxs)
 
 
                 print('t = ', t.item(), ' idxs = ', idxs, ' noise shape = ', noise.shape)
             elif isinstance(user_role, Receiver):     # receiver's side
                 idxs = th.tensor(user_role.indices_dict[t.item()], device=device) 
-                noise = codebook[idxs]
+                # example: tensor([[28], [25], [14], [27], [ 9]], device='cuda:0')
+                noise = codebook[idxs[0]]
 
                 # print("codebook shape:", codebook.shape)
                 # print("noise shape:", noise.shape)
@@ -739,7 +641,7 @@ class GaussianDiffusion:  # initialize in function create_model_and_diffusion
                         noise_candidate_list, hf_info_list, hf_star, x_0_list = self.get_5_candidates_for_inference(model,
                                                                     out['mean'],
                                                                     out['log_variance'],
-                                                                    noise.unsqueeze(0),
+                                                                    idxs,
                                                                     t,                  # t: current timestep
                                                                     clip_denoised,
                                                                     denoised_fn,
@@ -789,7 +691,9 @@ class GaussianDiffusion:  # initialize in function create_model_and_diffusion
                     # codebook: (K, C, H, W)
                     # noise: (C, H, W)
 
-                    noise = noise_refine_model(codebook, noise)
+                    # noise = noise_refine_model(codebook, noise)
+                    #---------NEED EDIT SoftmaxAttention------------------
+                    pass 
 
         # print('new noise.shape:', noise.shape)
         # no noise when t == 0
@@ -1070,20 +974,14 @@ class GaussianDiffusion:  # initialize in function create_model_and_diffusion
                 )
 
             codebook = th.from_numpy(codebook).to(device).type(th.float32) 
-            sims = th.einsum('kuwv,buwv->kb', codebook, x_start - out_x_t["pred_xstart"])
-            idxs = sims.argmax(0)
-            anchor_noise = codebook[idxs]
+            sims = th.einsum('kuwv,buwv->kb', codebook, x_start - out_x_t["pred_xstart"]).squeeze(1)   #torch.Size([32, 1]) -> torch.Size([32])
+
 
             x_t_candidate_list = []
 
-            # ------------ Find top 5 similar vectors to anchor noise (including itself) -----------
+            # ------------ Find top 5 similar vectors to residual s-----------
 
-            anchor_noise_flat_norm = th.nn.functional.normalize(anchor_noise.view(1, -1), dim=1)
-            codebook_flat_norm     = th.nn.functional.normalize(codebook.view(codebook.shape[0], -1), dim=1)
-
-            cos_sim = th.matmul(anchor_noise_flat_norm, codebook_flat_norm.T).squeeze(0)
-
-            sims_value, sims_index = th.topk(cos_sim, k=5, largest=True)
+            sims_value, sims_index = th.topk(sims, k=5, largest=True)
             sims_index = sims_index.view(-1)
             # print('sims_index: ', sims_index)
               
@@ -1151,7 +1049,7 @@ class GaussianDiffusion:  # initialize in function create_model_and_diffusion
         model,
         mu_x_t,
         log_sigma_t,
-        anchor_noise,
+        idxs,
         t,                  # t: current timestep
         clip_denoised=True,
         denoised_fn=None,
@@ -1163,24 +1061,10 @@ class GaussianDiffusion:  # initialize in function create_model_and_diffusion
         hf_star = laplacian_kernel(hq_img)
 
         noise_candidate_list = []
-        noise_candidate_list.append(anchor_noise)
         x_t_candidate_list = []
-        
-        # print('anchor_noise.shape: ', anchor_noise.shape)
-
-        # ------ COMPUTE SOFTMAX COMBINATION OF TOP 1, 3, 5, 10 SIMILAR VECTORS OF z_t ------
-        anchor_noise_flat_norm = th.nn.functional.normalize(anchor_noise.view(1, -1), dim=1)
-        codebook_flat_norm     = th.nn.functional.normalize(codebook.view(codebook.shape[0], -1), dim=1)
-
-        cos_sim = th.matmul(anchor_noise_flat_norm, codebook_flat_norm.T).squeeze(0)        # top 5 noise similar to anchor noise
-        sims_value, sims_index = th.topk(cos_sim, k=5, largest=True)
-        sims_index = sims_index.view(-1)
-        top5_vectors = codebook[sims_index]
-        noise_candidate_list = []
-
-        for i in range(top5_vectors.shape[0]):
-                noise_candidate_list.append(top5_vectors[i])
-                x_t_candidate_list.append(mu_x_t + th.exp(0.5 * log_sigma_t) * top5_vectors[i])
+        for i in range(idxs.shape[0]):
+            noise_candidate_list.append(codebook[idxs[i]])
+            x_t_candidate_list.append(mu_x_t + th.exp(0.5 * log_sigma_t) * codebook[idxs[i]])
         
 
         x_0_list = []
