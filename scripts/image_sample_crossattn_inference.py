@@ -99,7 +99,7 @@ def main():
     start_time = time.perf_counter()
     
     #---------------- REFINE NET INITIALIZE -----------------------
-    checkpoint = th.load(repo_folder_path + 'train_with_timestep_from_1_to_400/refine_net_epoch_499.pth')
+    checkpoint = th.load(repo_folder_path + 'send_more_info_train_with_timestep_from_1_to_400/refine_net_epoch_499.pth')
     refine_net = PixelCrossAttentionRefiner(feat_dim=3, embed_dim=3, num_heads=3).to(dist_util.dev())  
     refine_net.load_state_dict(checkpoint['model_state_dict'])
 
@@ -123,26 +123,26 @@ def main():
 
             # user_role=Transmitter(),
 
-            # user_role=Receiver(''),
-            # hq_img_path="/mnt/HDD2/phu2/custom-guided-diffusion/hq_img/imagenet-256/academic_gown/000.jpg",
+            user_role=Receiver('/mnt/HDD2/phu2/custom-guided-diffusion/compressed_info/compressed_representation_date_20250702_time_1327.json'),
+            hq_img_path="/mnt/HDD2/phu2/custom-guided-diffusion/hq_img/imagenet-256/academic_gown/000.jpg",
 
-            # user_role=Receiver(''),
+            # user_role=Receiver('/mnt/HDD2/phu2/custom-guided-diffusion/compressed_info/compressed_representation_date_20250702_time_1328.json'),
             # hq_img_path="/mnt/HDD2/phu2/custom-guided-diffusion/hq_img/imagenet-256/academic_gown/004.jpg",
 
             # -----------------
-            # user_role=Receiver(''),
+            # user_role=Receiver('/mnt/HDD2/phu2/custom-guided-diffusion/compressed_info/compressed_representation_date_20250702_time_1329.json'),
             # hq_img_path='/mnt/HDD2/phu2/custom-guided-diffusion/hq_img/CelebDataProcessed/Jennifer Lopez/8.jpg',
-
-            # user_role=Receiver(''),
+# 
+            # user_role=Receiver('/mnt/HDD2/phu2/custom-guided-diffusion/compressed_info/compressed_representation_date_20250702_time_1332.json'),
             # hq_img_path='/mnt/HDD2/phu2/custom-guided-diffusion/hq_img/CelebDataProcessed/Leonardo DiCaprio/20.jpg',
 
-            user_role=Receiver('/mnt/HDD2/phu2/custom-guided-diffusion/compressed_info/compressed_representation_date_20250702_time_0043.json'),
-            hq_img_path='/mnt/HDD2/phu2/custom-guided-diffusion/hq_img/CelebDataProcessed/Barack Obama/15.jpg',
+            # user_role=Receiver('/mnt/HDD2/phu2/custom-guided-diffusion/compressed_info/compressed_representation_date_20250702_time_0043.json'),
+            # hq_img_path='/mnt/HDD2/phu2/custom-guided-diffusion/hq_img/CelebDataProcessed/Barack Obama/15.jpg',
 
             # -----------------
 
-            # noise_refine_model=refine_net,
-            noise_refine_model=None
+            noise_refine_model=refine_net,
+            # noise_refine_model=None
 
         )
 
