@@ -46,6 +46,7 @@ import torch.nn as nn
 import torch.optim as optim 
 
 def main():
+    print('branch: main_train_imagenet')
     start_time = time.perf_counter()
     args = create_argparser().parse_args()
 
@@ -109,7 +110,7 @@ def main():
         model_kwargs["y"] = classes
     
     #---------------- REFINE NET INITIALIZE -----------------------
-    refine_net = PixelCrossAttentionRefiner(feat_dim=3, embed_dim=3, num_heads=3).to(dist_util.dev())
+    refine_net = PixelCrossAttentionRefiner(feat_dim=3, embed_dim=32, num_heads=16).to(dist_util.dev())
     criterion = nn.L1Loss()
     optimizer = optim.Adam(
         refine_net.parameters(), 
@@ -134,6 +135,7 @@ def main():
         batch_size=batch_size,
         image_size=256,
         class_cond=False,
+        # deterministic=False,
     )
 
     # batch = next(data)
@@ -162,7 +164,7 @@ def main():
     #         self.save()
 
 
-    n_iterations = 1000
+    n_iterations = 2000
     n_save_interval = 50
     for iteration in tqdm(range(n_iterations), desc='Training iterations'):
         timestep = th.randint(1, 200, (1,)).item()      # [1, 199)
@@ -180,34 +182,24 @@ def main():
             verbose=verbose
         )
 
-        # print('batch_noise_candidate.shape: ', batch_noise_candidate.shape)  
-        # print('batch_hf_info.shape: ', batch_hf_info.shape)  
-        # print('batch_hf_star.shape: ', batch_hf_star.shape)  
-        # print('batch_r_t.shape: ', batch_r_t.shape)  
-
         # batch_noise_candidate.shape:  torch.Size([32, 5, 3, 256, 256])
-        # batch_hf_info.shape:  torch.Size([32, 5, 1, 3, 256, 256])
-        # batch_hf_star.shape:  torch.Size([32, 3, 256, 256])
-        # batch_r_t.shape:  torch.Size([32, 3, 256, 256])
-
-        # batch_noise_candidate = th.stack(batch_noise_candidate).to(dist_util.dev())     # torch.Size([32, 5, 3, 256, 256])
-        # batch_hf_info         = th.stack(batch_hf_info).to(dist_util.dev()).squeeze(2)  # torch.Size([32, 5, 3, 256, 256])
-        # batch_hf_star         = th.stack(batch_hf_star).to(dist_util.dev()).squeeze(1)  # torch.Size([32, 3, 256, 256])
-        # batch_r_t             = th.stack(batch_r_t).to(dist_util.dev())                 # torch.Size([32, 3, 256, 256])
-        # batch_x_start         = th.stack(batch_x_start).to(dist_util.dev())                 # torch.Size([32, 3, 256, 256])
-# 
+        # batch_hf_info.shape:          torch.Size([32, 5, 3, 256, 256])
+        # batch_hf_star.shape:          torch.Size([32, 3, 256, 256])
+        # batch_r_t.shape:              torch.Size([32, 3, 256, 256])
     
         z_hat = refine_net(batch_hf_star, batch_hf_info, batch_noise_candidate)  # → [B, 3, H, W]
-
 
         loss = criterion(z_hat, batch_r_t) 
         optimizer.zero_grad()
         loss.backward()
         optimizer.step()
 
-        if (iteration > 0 and iteration % n_save_interval == 0) or iteration == n_iterations-1:
-            refine_net.save_checkpoint(optimizer, iteration, path=repo_folder_path + f'train_with_timestep_from_1_to_400/refine_net_epoch_{iteration}.pth')
-        print('iteration: ', iteration, ' loss: ', loss)
+        with open('../learning_curve.txt', 'a') as f:
+            f.write(f'iteration {iteration} loss {loss}\n')
+
+        if (iteration % n_save_interval == 0) or iteration == n_iterations-1:
+            refine_net.save_checkpoint(optimizer, iteration, path=repo_folder_path + f'train_with_batch_increase_dim_and_head/refine_net_epoch_{iteration}.pth')
+        
         
     dist.barrier()
     logger.log("sampling complete")

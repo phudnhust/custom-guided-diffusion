@@ -98,8 +98,10 @@ def main():
     start_time = time.perf_counter()
     
     #---------------- REFINE NET INITIALIZE -----------------------
-    checkpoint = th.load(repo_folder_path + 'train_with_timestep_from_1_to_200/refine_net_epoch_199.pth')
-    refine_net = PixelCrossAttentionRefiner(feat_dim=3, embed_dim=3, num_heads=3).to(dist_util.dev())  
+    checkpoint = th.load(repo_folder_path + 'train_with_batch_increase_dim_and_head/refine_net_epoch_500.pth')
+    refine_net = PixelCrossAttentionRefiner(feat_dim=3, embed_dim=32, num_heads=16).to(dist_util.dev())
+    # refine_net = PixelCrossAttentionRefiner(feat_dim=3, embed_dim=3, num_heads=3).to(dist_util.dev())  
+
     refine_net.load_state_dict(checkpoint['model_state_dict'])
 
     while len(all_images) * args.batch_size < args.num_samples:

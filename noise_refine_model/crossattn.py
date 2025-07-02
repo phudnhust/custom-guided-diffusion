@@ -57,14 +57,15 @@ class PixelCrossAttentionRefiner(nn.Module):
             raise ValueError(f"embed_dim ({embed_dim}) must be divisible by num_heads ({num_heads})")
             
         self.feat_dim = feat_dim
+        self.embed_dim = embed_dim
         # first block: input is (C + 2 coords) → embed_dim
         self.q1 = nn.Linear(feat_dim + 2, embed_dim)
         self.k1 = nn.Linear(feat_dim + 2, embed_dim)
         self.v1 = nn.Linear(feat_dim    , embed_dim)  # values don't need coords
 
         # second block: input is (C + embed_dim + 2 coords) → embed_dim
-        self.q2 = nn.Linear(feat_dim + embed_dim + 2, embed_dim)
-        self.k2 = nn.Linear(feat_dim + embed_dim + 2, embed_dim)
+        self.q2 = nn.Linear(feat_dim + feat_dim + 2, embed_dim)
+        self.k2 = nn.Linear(feat_dim + feat_dim + 2, embed_dim)
         # self.v2 = nn.Linear(feat_dim + embed_dim    , embed_dim)
         self.v2 = nn.Linear(feat_dim    , embed_dim)  # values don't need coords
 
@@ -120,7 +121,7 @@ class PixelCrossAttentionRefiner(nn.Module):
         """
         Value = V_feats.permute(0,1,3,4,2).reshape(B*N, K, -1)      # [B*H*W, K, Cv] = [2097152, 5, 3]
         
-        dummy_value_for_attn = torch.zeros((K,B*N, self.feat_dim), device=Value.device)  # [K, B*N, C] = [5, 2097152, 3]
+        dummy_value_for_attn = torch.zeros((K,B*N, self.embed_dim), device=Value.device)  # [K, B*N, C] = [5, 2097152, 3]
         _, attention_weights = attn(Query, Key, dummy_value_for_attn)   # [B*N, 1, K] = [2097152, 1, 5]
         attention_weights = nn.functional.normalize(attention_weights, p=2, dim=-1)
 
