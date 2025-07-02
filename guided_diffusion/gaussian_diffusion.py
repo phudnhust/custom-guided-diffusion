@@ -1030,7 +1030,7 @@ class GaussianDiffusion:  # initialize in function create_model_and_diffusion
             device=None,
             progress=False,
             codebook=None,
-            hq_img_path=None,         # high quality image path
+            img_batch=None,         # high quality image path
             timestep=1,
             verbose=True
         ):
@@ -1046,18 +1046,16 @@ class GaussianDiffusion:  # initialize in function create_model_and_diffusion
                 print('timestep: ', timestep)
                 print('Step 1: Load HQ image')
             
-            x_start = load_hq_image(hq_img_path).to(device)        # torch.Size([C, H, W])
             
-            hf_star = laplacian_kernel(x_start)
+            batch_hf_star = laplacian_kernel(img_batch)
 
             # --------- ADD NOISE INTO HQ IMAGE ---------
             if verbose:
                 print('Step 2: Add noise into HQ image')
-            batch_size = 1
-            x_t_add_1 = self.q_sample(x_start=x_start, t=th.tensor([timestep + 1] * batch_size, device=device))
+            batch_size = img_batch.shape[0]
+            x_t_add_1 = self.q_sample(x_start=img_batch, t=th.tensor([timestep + 1] * batch_size, device=device))
 
             # -------- CREATE 5 CANDIDATES OF x_t -------
-
 
             with th.no_grad():
                 out_x_t = self.p_mean_variance(
@@ -1069,48 +1067,70 @@ class GaussianDiffusion:  # initialize in function create_model_and_diffusion
                     model_kwargs=model_kwargs,
                 )
 
-            codebook = th.from_numpy(codebook).to(device).type(th.float32) 
-            sims = th.einsum('kuwv,buwv->kb', codebook, x_start - out_x_t["pred_xstart"])
-            idxs = sims.argmax(0)
-            anchor_noise = codebook[idxs]
-
-            x_t_candidate_list = []
-
-            # ------------ Find top 5 similar vectors to anchor noise (including itself) -----------
-
-            anchor_noise_flat_norm = th.nn.functional.normalize(anchor_noise.view(1, -1), dim=1)
-            codebook_flat_norm     = th.nn.functional.normalize(codebook.view(codebook.shape[0], -1), dim=1)
-
-            cos_sim = th.matmul(anchor_noise_flat_norm, codebook_flat_norm.T).squeeze(0)
-
-            sims_value, sims_index = th.topk(cos_sim, k=5, largest=True)
-            sims_index = sims_index.view(-1)
-            # print('sims_index: ', sims_index)
-              
-            top5_vectors = codebook[sims_index]                             # (topk, 1, C, H, W)
-            noise_candidate_list = []
-            for i in range(top5_vectors.shape[0]):
-                noise_candidate_list.append(top5_vectors[i])
-                x_t_candidate_list.append(out_x_t['mean'] + th.exp(0.5 * out_x_t['log_variance']) * top5_vectors[i])
-
+            codebook = th.from_numpy(codebook).to(device).type(th.float32)
+            batch_noise_candidate = []
+            batch_x_t_candidate = []
             
-            r_t = x_start - out_x_t['pred_xstart']
+            for i in range(batch_size):
+                x0 = img_batch[i]
+                x0_pred = out_x_t["pred_xstart"][i]
 
-            x_0_list = []
-            for x_t in x_t_candidate_list:          # mỗi 1 out là 1 candidate của x_t
-                with th.no_grad():
-                    x_0_list.append(self.p_mean_variance(
-                        model,
-                        x_t,
-                        th.tensor([timestep - 1] * batch_size, device=device),
-                        clip_denoised=clip_denoised,
-                        denoised_fn=denoised_fn,
-                        model_kwargs=model_kwargs,
-                )['pred_xstart'] )
-            hf_info_list = [laplacian_kernel(x_0) for x_0 in x_0_list]
+                sims = th.einsum('kuwv,buwv->kb', codebook, (x0 - x0_pred).unsqueeze(0))
+                idxs = sims.argmax(0)
+                anchor_noise = codebook[idxs]
+
+                noise_candidate_list = []
+                x_t_candidate_list = []
+
+                # ------------ Find top 5 similar vectors to anchor noise (including itself) -----------
+
+                anchor_noise_flat_norm = th.nn.functional.normalize(anchor_noise.view(1, -1), dim=1)
+                codebook_flat_norm     = th.nn.functional.normalize(codebook.view(codebook.shape[0], -1), dim=1)
+
+                cos_sim = th.matmul(anchor_noise_flat_norm, codebook_flat_norm.T).squeeze(0)
+
+                _, sims_index = th.topk(cos_sim, k=5, largest=True)
+                sims_index = sims_index.view(-1)
+                # print('sims_index: ', sims_index)
+              
+                top5_vectors = codebook[sims_index]                             # (topk, 1, C, H, W)
+                for k in range(top5_vectors.shape[0]):
+                    noise_candidate_list.append(top5_vectors[k])
+                    x_t_candidate_list.append(out_x_t['mean'][i] + th.exp(0.5 * out_x_t['log_variance'][i]) * top5_vectors[k])
+
+                batch_noise_candidate.append(th.stack(noise_candidate_list).squeeze(1))     # torch.Size([5, 3, 256, 256])
+                batch_x_t_candidate.append(th.stack(x_t_candidate_list).squeeze(1))         # torch.Size([5, 3, 256, 256])
+
+            batch_noise_candidate = th.stack(batch_noise_candidate).to(device)   # torch.Size([batch_size, 5, 3, 256, 256])
+            batch_x_t_candidate = th.stack(batch_x_t_candidate).to(device)       # torch.Size([batch_size, 5, 3, 256, 256])
+            batch_r_t = img_batch - out_x_t['pred_xstart']
+
+            batch_hf_info = []
+
+            for i in range(batch_size):
+                x_t_candidate = batch_x_t_candidate[i]  # torch.Size([5, 3, 256, 256])
+
+
+                x_0_list = []
+                for k in range(x_t_candidate.shape[0]):          # mỗi 1 out là 1 candidate của x_t
+                    x_t = x_t_candidate[k]               # torch.Size([3, 256, 256])
+                    with th.no_grad():
+                        x_0_list.append(self.p_mean_variance(
+                            model,
+                            x_t.unsqueeze(0),
+                            th.tensor([timestep - 1] * 1, device=device),
+                            clip_denoised=clip_denoised,
+                            denoised_fn=denoised_fn,
+                            model_kwargs=model_kwargs,
+                    )['pred_xstart'] )
+                hf_info_list = [laplacian_kernel(x_0) for x_0 in x_0_list]
+
+                batch_hf_info.append(th.stack(hf_info_list).squeeze(1).to(device))  # torch.Size([5, 3, 256, 256])
+            
+            batch_hf_info = th.stack(batch_hf_info).to(device)  # torch.Size([batch_size, 5, 3, 256, 256])
 
             # --------- SAMPLE FROM CODEBOOK ---------
-            return noise_candidate_list, hf_info_list, hf_star, r_t, x_0_list, x_start, x_t_add_1
+            return batch_noise_candidate, batch_hf_info, batch_hf_star, batch_r_t
 
     def sample_x_0_t_minus_1_for_lpips(self, model, batch_x_t, timestep, clip_denoised, model_kwargs, batch_z_t_refined, device=None):
 
