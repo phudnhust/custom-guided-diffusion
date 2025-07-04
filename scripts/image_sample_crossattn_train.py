@@ -198,7 +198,7 @@ def main():
             f.write(f'iteration {iteration} loss {loss}\n')
 
         if (iteration % n_save_interval == 0) or iteration == n_iterations-1:
-            refine_net.save_checkpoint(optimizer, iteration, path=repo_folder_path + f'train_with_batch_increase_dim_and_head/refine_net_epoch_{iteration}.pth')
+            refine_net.save_checkpoint(optimizer, iteration, path=repo_folder_path + f'train_with_batch_increase_dim_and_head_send_more_info/refine_net_epoch_{iteration}.pth')
         
         
     dist.barrier()

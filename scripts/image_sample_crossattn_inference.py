@@ -117,28 +117,28 @@ def main():
         sample_fn = diffusion.ddcm_sample_loop
         sample = sample_fn(
             model,
-            (args.batch_size, 3, args.image_size, args.image_size),
+            (1, 3, args.image_size, args.image_size),
             clip_denoised=args.clip_denoised,
             model_kwargs=model_kwargs,
             codebooks=_codebooks,
 
             # user_role=Transmitter(),
 
-            # user_role=Receiver('/mnt/HDD2/phu2/custom-guided-diffusion/compressed_info/compressed_representation_date_20250701_time_1630.json'),
-            # hq_img_path="/mnt/HDD2/phu2/custom-guided-diffusion/hq_img/imagenet-256/academic_gown/000.jpg",
+            user_role=Receiver('/mnt/HDD2/phu2/custom-guided-diffusion/compressed_info/compressed_representation_date_20250702_time_1327.json'),
+            hq_img_path="/mnt/HDD2/phu2/custom-guided-diffusion/hq_img/imagenet-256/academic_gown/000.jpg",
 
-            # user_role=Receiver('/mnt/HDD2/phu2/custom-guided-diffusion/compressed_info/compressed_representation_date_20250701_time_1648.json'),
+            # user_role=Receiver('/mnt/HDD2/phu2/custom-guided-diffusion/compressed_info/compressed_representation_date_20250702_time_1328.json'),
             # hq_img_path="/mnt/HDD2/phu2/custom-guided-diffusion/hq_img/imagenet-256/academic_gown/004.jpg",
 
             # -----------------
-            # user_role=Receiver('/mnt/HDD2/phu2/custom-guided-diffusion/compressed_info/compressed_representation_date_20250701_time_1703.json'),
+            # user_role=Receiver('/mnt/HDD2/phu2/custom-guided-diffusion/compressed_info/compressed_representation_date_20250702_time_1329.json'),
             # hq_img_path='/mnt/HDD2/phu2/custom-guided-diffusion/hq_img/CelebDataProcessed/Jennifer Lopez/8.jpg',
 
-            # user_role=Receiver('/mnt/HDD2/phu2/custom-guided-diffusion/compressed_info/compressed_representation_date_20250701_time_1709.json'),
+            # user_role=Receiver('/mnt/HDD2/phu2/custom-guided-diffusion/compressed_info/compressed_representation_date_20250702_time_1332.json'),
             # hq_img_path='/mnt/HDD2/phu2/custom-guided-diffusion/hq_img/CelebDataProcessed/Leonardo DiCaprio/20.jpg',
 
-            user_role=Receiver('/mnt/HDD2/phu2/custom-guided-diffusion/compressed_info/compressed_representation_date_20250701_time_2225.json'),
-            hq_img_path='/mnt/HDD2/phu2/custom-guided-diffusion/hq_img/CelebDataProcessed/Barack Obama/15.jpg',
+            # user_role=Receiver('/mnt/HDD2/phu2/custom-guided-diffusion/compressed_info/compressed_representation_date_20250702_time_0043.json'),
+            # hq_img_path='/mnt/HDD2/phu2/custom-guided-diffusion/hq_img/CelebDataProcessed/Barack Obama/15.jpg',
 
             # -----------------
 

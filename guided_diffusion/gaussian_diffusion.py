@@ -1076,22 +1076,11 @@ class GaussianDiffusion:  # initialize in function create_model_and_diffusion
                 x0_pred = out_x_t["pred_xstart"][i]
 
                 sims = th.einsum('kuwv,buwv->kb', codebook, (x0 - x0_pred).unsqueeze(0))
-                idxs = sims.argmax(0)
-                anchor_noise = codebook[idxs]
+                
+                _, sims_index = th.topk(sims, k=5, dim=0, largest=True)
 
                 noise_candidate_list = []
                 x_t_candidate_list = []
-
-                # ------------ Find top 5 similar vectors to anchor noise (including itself) -----------
-
-                anchor_noise_flat_norm = th.nn.functional.normalize(anchor_noise.view(1, -1), dim=1)
-                codebook_flat_norm     = th.nn.functional.normalize(codebook.view(codebook.shape[0], -1), dim=1)
-
-                cos_sim = th.matmul(anchor_noise_flat_norm, codebook_flat_norm.T).squeeze(0)
-
-                _, sims_index = th.topk(cos_sim, k=5, largest=True)
-                sims_index = sims_index.view(-1)
-                # print('sims_index: ', sims_index)
               
                 top5_vectors = codebook[sims_index]                             # (topk, 1, C, H, W)
                 for k in range(top5_vectors.shape[0]):
@@ -1171,7 +1160,7 @@ class GaussianDiffusion:  # initialize in function create_model_and_diffusion
         model,
         mu_x_t,
         log_sigma_t,
-        anchor_noise,
+        idxs,
         t,                  # t: current timestep
         clip_denoised=True,
         denoised_fn=None,
@@ -1183,25 +1172,11 @@ class GaussianDiffusion:  # initialize in function create_model_and_diffusion
         hf_star = laplacian_kernel(hq_img)
 
         noise_candidate_list = []
-        noise_candidate_list.append(anchor_noise)
         x_t_candidate_list = []
-        
-        # print('anchor_noise.shape: ', anchor_noise.shape)
-
-        # ------ COMPUTE SOFTMAX COMBINATION OF TOP 1, 3, 5, 10 SIMILAR VECTORS OF z_t ------
-        anchor_noise_flat_norm = th.nn.functional.normalize(anchor_noise.view(1, -1), dim=1)
-        codebook_flat_norm     = th.nn.functional.normalize(codebook.view(codebook.shape[0], -1), dim=1)
-
-        cos_sim = th.matmul(anchor_noise_flat_norm, codebook_flat_norm.T).squeeze(0)        # top 5 noise similar to anchor noise
-        sims_value, sims_index = th.topk(cos_sim, k=5, largest=True)
-        sims_index = sims_index.view(-1)
-        top5_vectors = codebook[sims_index]
-        noise_candidate_list = []
-
-        for i in range(top5_vectors.shape[0]):
-                noise_candidate_list.append(top5_vectors[i])
-                x_t_candidate_list.append(mu_x_t + th.exp(0.5 * log_sigma_t) * top5_vectors[i])
-        
+        for i in range(idxs.shape[0]):
+            noise_candidate_list.append(codebook[idxs[i]])
+            x_t_candidate_list.append(mu_x_t + th.exp(0.5 * log_sigma_t) * codebook[idxs[i]])
+       
 
         x_0_list = []
         for x_t in x_t_candidate_list:
