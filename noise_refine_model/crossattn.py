@@ -157,17 +157,17 @@ class PixelCrossAttentionRefiner(nn.Module):
         K1 = torch.cat([HF_cands, i_k, j_k], dim=2)                 # [B,K,C+2,H,W]
         V1 = Z_cands                                               # [B,K,C, H, W]
         z_star = self._cross_attn(Q1, K1, V1, self.q1, self.k1, self.v1, self.attn1)
-        # return z_star
+        return z_star
     
-        # --- second cross‐attention ---
-        z_star_exp = z_star.unsqueeze(1).expand(-1,K,-1,-1,-1)      # [B,K,embed_dim,H,W]
-        Q2 = torch.cat([HF_star, z_star, i_grid, j_grid], dim=1)    # [B,C+E+2,H,W]
-        K2 = torch.cat([HF_cands, z_star_exp, i_k, j_k],    dim=2)  # [B,K,C+E+2,H,W]
-        # V2 = torch.cat([Z_cands,   z_star_exp],            dim=2)  # [B,K,C+E   ,H,W]
-        V2 = Z_cands
-        z_hat = self._cross_attn(Q2, K2, V2, self.q2, self.k2, self.v2, self.attn2)
+        # # --- second cross‐attention ---
+        # z_star_exp = z_star.unsqueeze(1).expand(-1,K,-1,-1,-1)      # [B,K,embed_dim,H,W]
+        # Q2 = torch.cat([HF_star, z_star, i_grid, j_grid], dim=1)    # [B,C+E+2,H,W]
+        # K2 = torch.cat([HF_cands, z_star_exp, i_k, j_k],    dim=2)  # [B,K,C+E+2,H,W]
+        # # V2 = torch.cat([Z_cands,   z_star_exp],            dim=2)  # [B,K,C+E   ,H,W]
+        # V2 = Z_cands
+        # z_hat = self._cross_attn(Q2, K2, V2, self.q2, self.k2, self.v2, self.attn2)
 
-        return z_hat  # [B, embed_dim, H, W]
+        # return z_hat  # [B, embed_dim, H, W]
 
     def save_checkpoint(self, optimizer, epoch, path="refiner_checkpoint.pth"):
         """

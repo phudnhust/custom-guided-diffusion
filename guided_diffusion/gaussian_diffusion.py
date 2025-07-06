@@ -992,6 +992,8 @@ class GaussianDiffusion:  # initialize in function create_model_and_diffusion
             # print('timestep: ', i)
             # Create timestep tensor
             t = th.tensor([i] * shape[0], device=device)
+            print('img.shape: ', img.shape)
+            print('shape[0]: ', shape[0])
             with th.no_grad():
                 out = self.ddcm_sample(
                     model,

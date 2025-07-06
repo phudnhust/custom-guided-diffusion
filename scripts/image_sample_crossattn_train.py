@@ -187,7 +187,12 @@ def main():
         # batch_hf_star.shape:          torch.Size([32, 3, 256, 256])
         # batch_r_t.shape:              torch.Size([32, 3, 256, 256])
     
-        z_hat = refine_net(batch_hf_star, batch_hf_info, batch_noise_candidate)  # → [B, 3, H, W]
+        z_reference = batch_noise_candidate[:, 0, :, :, :]
+        # print('z_reference.shape:', z_reference.shape)     torch.Size([32, 3, 256, 256])
+
+        z_hat = refine_net(z_reference, batch_noise_candidate, batch_noise_candidate)  # → [B, 3, H, W]
+        # z_hat = refine_net(batch_hf_star, batch_hf_info, batch_noise_candidate)  # → [B, 3, H, W]
+
 
         loss = criterion(z_hat, batch_r_t) 
         optimizer.zero_grad()
@@ -198,7 +203,7 @@ def main():
             f.write(f'iteration {iteration} loss {loss}\n')
 
         if (iteration % n_save_interval == 0) or iteration == n_iterations-1:
-            refine_net.save_checkpoint(optimizer, iteration, path=repo_folder_path + f'train_with_batch_increase_dim_and_head_send_more_info/refine_net_epoch_{iteration}.pth')
+            refine_net.save_checkpoint(optimizer, iteration, path=repo_folder_path + f'send_more_info_train_imagenet_without_hf/refine_net_epoch_{iteration}.pth')
         
         
     dist.barrier()

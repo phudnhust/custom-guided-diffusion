@@ -98,7 +98,7 @@ def main():
     start_time = time.perf_counter()
     
     #---------------- REFINE NET INITIALIZE -----------------------
-    checkpoint = th.load(repo_folder_path + 'train_with_batch_increase_dim_and_head/refine_net_epoch_500.pth')
+    checkpoint = th.load(repo_folder_path + 'send_more_info_train_imagenet_without_hf/refine_net_epoch_500.pth')
     refine_net = PixelCrossAttentionRefiner(feat_dim=3, embed_dim=32, num_heads=16).to(dist_util.dev())
     # refine_net = PixelCrossAttentionRefiner(feat_dim=3, embed_dim=3, num_heads=3).to(dist_util.dev())  
 
