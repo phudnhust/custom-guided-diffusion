@@ -164,7 +164,7 @@ def main():
             batch_x_start         = []
             batch_x_t             = []
             for hq_img_path in hq_img_batch:
-                noise_candidate_list, hf_info_list, hf_star, r_t, x_0_list, x_start, x_t_add_1 = diffusion.get_5_candidates_for_train(
+                z_t_candidate_list, hf_info_list, hf_star, r_t, x_0_list, x_start, x_t = diffusion.get_5_candidates_for_train(
                     model,
                     shape=(args.batch_size, 3, args.image_size, args.image_size),
                     clip_denoised=args.clip_denoised,
@@ -173,13 +173,12 @@ def main():
                     hq_img_path=hq_img_path,
                     timestep=timestep,
                     verbose=verbose
-                )       # (noise_candidate_list, x_0_list)
+                )
 
-
-                # print('noise_candidate_list[0].shape: ', noise_candidate_list[0].shape)    # torch.Size([1, 3, 256, 256])
+                # print('z_t_candidate_list[0].shape: ', z_t_candidate_list[0].shape)    # torch.Size([1, 3, 256, 256])
                 # print('hf_info_list[0].shape: ', hf_star[0].shape)                         # torch.Size([3, 256, 256])
 
-                noise_candidate = th.stack(noise_candidate_list).squeeze(1)     # torch.Size([5, 3, 256, 256]) 
+                noise_candidate = th.stack(z_t_candidate_list).squeeze(1)     # torch.Size([5, 3, 256, 256]) 
                 hf_info = th.stack(hf_info_list)                                # torch.Size([5, 3, 256, 256])
 
                 # print('hf_star.shape: ', hf_star.shape)                       # torch.Size([3, 256, 256])
@@ -189,7 +188,7 @@ def main():
                 batch_hf_info.append(hf_info)
                 batch_hf_star.append(hf_star)
                 batch_r_t.append(r_t.squeeze(0))
-                batch_x_start.append(x_start.squeeze(0))
+                # batch_x_start.append(x_start.squeeze(0))
                 # batch_x_t.append(x_t)
 
                 # ## ---------- VISUALIZE HF INFO OF X_0|T ----------
@@ -221,7 +220,7 @@ def main():
             batch_hf_info         = th.stack(batch_hf_info).to(dist_util.dev()).squeeze(2)  # torch.Size([32, 5, 3, 256, 256])
             batch_hf_star         = th.stack(batch_hf_star).to(dist_util.dev()).squeeze(1)  # torch.Size([32, 3, 256, 256])
             batch_r_t             = th.stack(batch_r_t).to(dist_util.dev())                 # torch.Size([32, 3, 256, 256])
-            batch_x_start         = th.stack(batch_x_start).to(dist_util.dev())                 # torch.Size([32, 3, 256, 256])
+            # batch_x_start         = th.stack(batch_x_start).to(dist_util.dev())                 # torch.Size([32, 3, 256, 256])
             # batch_x_t             = th.stack(batch_x_t).to(dist_util.dev())                 # torch.Size([32, 3, 256, 256])
 
             # print('batch_hf_info.shape: ', batch_hf_info.shape)

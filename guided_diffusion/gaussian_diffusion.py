@@ -958,15 +958,15 @@ class GaussianDiffusion:  # initialize in function create_model_and_diffusion
             if verbose:
                 print('Step 2: Add noise into HQ image')
             batch_size = 1
-            x_t_add_1 = self.q_sample(x_start=x_start, t=th.tensor([timestep + 1] * batch_size, device=device))
+            x_t = self.q_sample(x_start=x_start, t=th.tensor([timestep] * batch_size, device=device))
 
             # -------- CREATE 5 CANDIDATES OF x_t -------
 
 
             with th.no_grad():
-                out_x_t = self.p_mean_variance(
+                out_sampled_from_x_t = self.p_mean_variance(
                     model,
-                    x_t_add_1,
+                    x_t,
                     th.tensor([timestep] * batch_size, device=device),
                     clip_denoised=clip_denoised,
                     denoised_fn=denoised_fn,
@@ -974,10 +974,11 @@ class GaussianDiffusion:  # initialize in function create_model_and_diffusion
                 )
 
             codebook = th.from_numpy(codebook).to(device).type(th.float32) 
-            sims = th.einsum('kuwv,buwv->kb', codebook, x_start - out_x_t["pred_xstart"]).squeeze(1)   #torch.Size([32, 1]) -> torch.Size([32])
+            r_t = x_start - out_sampled_from_x_t['pred_xstart']
+            sims = th.einsum('kuwv,buwv->kb', codebook, r_t).squeeze(1)   #torch.Size([32, 1]) -> torch.Size([32])
 
-
-            x_t_candidate_list = []
+            z_t_candidate_list = []
+            x_t_minus_1_candidate_list = []
 
             # ------------ Find top 5 similar vectors to residual s-----------
 
@@ -986,20 +987,19 @@ class GaussianDiffusion:  # initialize in function create_model_and_diffusion
             # print('sims_index: ', sims_index)
               
             top5_vectors = codebook[sims_index]                             # (topk, 1, C, H, W)
-            noise_candidate_list = []
             for i in range(top5_vectors.shape[0]):
-                noise_candidate_list.append(top5_vectors[i])
-                x_t_candidate_list.append(out_x_t['mean'] + th.exp(0.5 * out_x_t['log_variance']) * top5_vectors[i])
+                z_t_candidate_list.append(top5_vectors[i])
+                x_t_minus_1_candidate_list.append(out_sampled_from_x_t['mean'] + th.exp(0.5 * out_sampled_from_x_t['log_variance']) * top5_vectors[i])
 
             
-            r_t = x_start - out_x_t['pred_xstart']
+            
 
             x_0_list = []
-            for x_t in x_t_candidate_list:          # mỗi 1 out là 1 candidate của x_t
+            for x_t_minus_1 in x_t_minus_1_candidate_list:          # mỗi 1 out là 1 candidate của x_t
                 with th.no_grad():
                     x_0_list.append(self.p_mean_variance(
                         model,
-                        x_t,
+                        x_t_minus_1,
                         th.tensor([timestep - 1] * batch_size, device=device),
                         clip_denoised=clip_denoised,
                         denoised_fn=denoised_fn,
@@ -1008,7 +1008,7 @@ class GaussianDiffusion:  # initialize in function create_model_and_diffusion
             hf_info_list = [laplacian_kernel(x_0) for x_0 in x_0_list]
 
             # --------- SAMPLE FROM CODEBOOK ---------
-            return noise_candidate_list, hf_info_list, hf_star, r_t, x_0_list, x_start, x_t_add_1
+            return z_t_candidate_list, hf_info_list, hf_star, r_t, x_0_list, x_start, x_t
 
     def sample_x_0_t_minus_1_for_lpips(self, model, batch_x_t, timestep, clip_denoised, model_kwargs, batch_z_t_refined, device=None):
 
@@ -1061,19 +1061,19 @@ class GaussianDiffusion:  # initialize in function create_model_and_diffusion
         hf_star = laplacian_kernel(hq_img)
 
         noise_candidate_list = []
-        x_t_candidate_list = []
+        x_t_minus_1_candidate_list = []
         for i in range(idxs.shape[0]):
             noise_candidate_list.append(codebook[idxs[i]])
-            x_t_candidate_list.append(mu_x_t + th.exp(0.5 * log_sigma_t) * codebook[idxs[i]])
+            x_t_minus_1_candidate_list.append(mu_x_t + th.exp(0.5 * log_sigma_t) * codebook[idxs[i]])
         
 
         x_0_list = []
-        for x_t in x_t_candidate_list:
+        for x_t_minus_1 in x_t_minus_1_candidate_list:
             with th.no_grad():
                 batch_size = 1
                 x_0_list.append(self.p_mean_variance(
                         model,
-                        x_t,
+                        x_t_minus_1,
                         th.tensor([t.item() - 1] * batch_size, device=device),
                         clip_denoised=clip_denoised,
                         denoised_fn=denoised_fn,
