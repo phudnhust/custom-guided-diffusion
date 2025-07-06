@@ -613,18 +613,18 @@ class GaussianDiffusion:  # initialize in function create_model_and_diffusion
                 sims = th.einsum('kuwv,buwv->kb', codebook, residual)
 
                 ########## SEND ONLY 1 INDEX / TIMESTEP ############
-                idxs = sims.argmax(0)
-                noise = codebook[idxs]
+                # idxs = sims.argmax(0)
+                # noise = codebook[idxs]
                 ######################
 
                 ########## SEND 5 INDICES / TIMESTEP ############
 
-                # if t.item() >= 200:
-                #     idxs = sims.argmax(0)
-                #     noise = codebook[idxs]
-                # else:
-                #     sim_values, idxs = th.topk(sims, k=5, largest=True, dim=0) 
-                #     print('idxs: ', idxs)
+                if t.item() >= 200:
+                    idxs = sims.argmax(0)
+                    noise = codebook[idxs]
+                else:
+                    sim_values, idxs = th.topk(sims, k=5, largest=True, dim=0) 
+                    print('idxs: ', idxs)
                 
                 #     topk_vectors = codebook[idxs]                                 # (5, 1, C, H, W)
                     
@@ -720,8 +720,9 @@ class GaussianDiffusion:  # initialize in function create_model_and_diffusion
 
                 print('t = ', t.item(), ' idxs = ', idxs, ' noise shape = ', noise.shape)
             elif isinstance(user_role, Receiver):     # receiver's side
+              
                 idxs = th.tensor(user_role.indices_dict[t.item()], device=device) 
-                noise = codebook[idxs]
+                noise = codebook[idxs[0]]
 
                 # print("codebook shape:", codebook.shape)
                 # print("noise shape:", noise.shape)
@@ -736,10 +737,10 @@ class GaussianDiffusion:  # initialize in function create_model_and_diffusion
                 elif type(noise_refine_model) is PixelCrossAttentionRefiner:
                     if (t.item() > 0) and (t.item() < 200):
 
-                        noise_candidate_list, hf_info_list, hf_star, x_0_list = self.get_5_candidates_for_inference(model,
+                        z_t_candidate_list, hf_info_list, hf_star, x_0_list = self.get_5_candidates_for_inference(model,
                                                                     out['mean'],
                                                                     out['log_variance'],
-                                                                    noise.unsqueeze(0),
+                                                                    idxs,
                                                                     t,                  # t: current timestep
                                                                     clip_denoised,
                                                                     denoised_fn,
@@ -756,7 +757,7 @@ class GaussianDiffusion:  # initialize in function create_model_and_diffusion
                                     # im = Image.fromarray(imgs[0])
                                     # im.save(f"x_0_t_timestep_{t.item()}_variant_{i}.png")
                         
-                        noise_candidate = th.stack(noise_candidate_list).squeeze(1)     # torch.Size([5, 3, 256, 256]) 
+                        noise_candidate = th.stack(z_t_candidate_list).squeeze(1)     # torch.Size([5, 3, 256, 256]) 
                         hf_info = th.stack(hf_info_list).squeeze(1)                     # torch.Size([5, 3, 256, 256])
                         hf_star = hf_star.squeeze(0)                                    # torch.Size([3, 256, 256])
 
@@ -1035,7 +1036,7 @@ class GaussianDiffusion:  # initialize in function create_model_and_diffusion
             verbose=True
         ):
             """
-            Return (noise_candidate_list, hf_info_list, hf_star, r_t) to train the refine model
+            Return (z_t_candidate_list, hf_info_list, hf_star, r_t) to train the refine model
             """
             if device is None:
                 device = next(model.parameters()).device
@@ -1053,14 +1054,14 @@ class GaussianDiffusion:  # initialize in function create_model_and_diffusion
             if verbose:
                 print('Step 2: Add noise into HQ image')
             batch_size = img_batch.shape[0]
-            x_t_add_1 = self.q_sample(x_start=img_batch, t=th.tensor([timestep + 1] * batch_size, device=device))
+            x_t = self.q_sample(x_start=img_batch, t=th.tensor([timestep] * batch_size, device=device))
 
             # -------- CREATE 5 CANDIDATES OF x_t -------
 
             with th.no_grad():
-                out_x_t = self.p_mean_variance(
+                out_sampled_from_x_t = self.p_mean_variance(
                     model,
-                    x_t_add_1,
+                    x_t,
                     th.tensor([timestep] * batch_size, device=device),
                     clip_denoised=clip_denoised,
                     denoised_fn=denoised_fn,
@@ -1068,45 +1069,45 @@ class GaussianDiffusion:  # initialize in function create_model_and_diffusion
                 )
 
             codebook = th.from_numpy(codebook).to(device).type(th.float32)
-            batch_noise_candidate = []
-            batch_x_t_candidate = []
+            batch_z_t_candidate = []
+            batch_x_t_minus_1_candidate = []
             
             for i in range(batch_size):
                 x0 = img_batch[i]
-                x0_pred = out_x_t["pred_xstart"][i]
+                x0_pred = out_sampled_from_x_t["pred_xstart"][i]
 
                 sims = th.einsum('kuwv,buwv->kb', codebook, (x0 - x0_pred).unsqueeze(0))
                 
                 _, sims_index = th.topk(sims, k=5, dim=0, largest=True)
 
-                noise_candidate_list = []
+                z_t_candidate_list = []
                 x_t_candidate_list = []
               
                 top5_vectors = codebook[sims_index]                             # (topk, 1, C, H, W)
                 for k in range(top5_vectors.shape[0]):
-                    noise_candidate_list.append(top5_vectors[k])
-                    x_t_candidate_list.append(out_x_t['mean'][i] + th.exp(0.5 * out_x_t['log_variance'][i]) * top5_vectors[k])
+                    z_t_candidate_list.append(top5_vectors[k])
+                    x_t_candidate_list.append(out_sampled_from_x_t['mean'][i] + th.exp(0.5 * out_sampled_from_x_t['log_variance'][i]) * top5_vectors[k])
 
-                batch_noise_candidate.append(th.stack(noise_candidate_list).squeeze(1))     # torch.Size([5, 3, 256, 256])
-                batch_x_t_candidate.append(th.stack(x_t_candidate_list).squeeze(1))         # torch.Size([5, 3, 256, 256])
+                batch_z_t_candidate.append(th.stack(z_t_candidate_list).squeeze(1))     # torch.Size([5, 3, 256, 256])
+                batch_x_t_minus_1_candidate.append(th.stack(x_t_candidate_list).squeeze(1))         # torch.Size([5, 3, 256, 256])
 
-            batch_noise_candidate = th.stack(batch_noise_candidate).to(device)   # torch.Size([batch_size, 5, 3, 256, 256])
-            batch_x_t_candidate = th.stack(batch_x_t_candidate).to(device)       # torch.Size([batch_size, 5, 3, 256, 256])
-            batch_r_t = img_batch - out_x_t['pred_xstart']
+            batch_z_t_candidate = th.stack(batch_z_t_candidate).to(device)   # torch.Size([batch_size, 5, 3, 256, 256])
+            batch_x_t_minus_1_candidate = th.stack(batch_x_t_minus_1_candidate).to(device)       # torch.Size([batch_size, 5, 3, 256, 256])
+            batch_r_t = img_batch - out_sampled_from_x_t['pred_xstart']
 
             batch_hf_info = []
 
             for i in range(batch_size):
-                x_t_candidate = batch_x_t_candidate[i]  # torch.Size([5, 3, 256, 256])
+                x_t_minus_1_candidate = batch_x_t_minus_1_candidate[i]  # torch.Size([5, 3, 256, 256])
 
 
                 x_0_list = []
-                for k in range(x_t_candidate.shape[0]):          # mỗi 1 out là 1 candidate của x_t
-                    x_t = x_t_candidate[k]               # torch.Size([3, 256, 256])
+                for k in range(x_t_minus_1_candidate.shape[0]):          # mỗi 1 out là 1 candidate của x_t
+                    x_t_minus_1 = x_t_minus_1_candidate[k]               # torch.Size([3, 256, 256])
                     with th.no_grad():
                         x_0_list.append(self.p_mean_variance(
                             model,
-                            x_t.unsqueeze(0),
+                            x_t_minus_1.unsqueeze(0),
                             th.tensor([timestep - 1] * 1, device=device),
                             clip_denoised=clip_denoised,
                             denoised_fn=denoised_fn,
@@ -1119,41 +1120,7 @@ class GaussianDiffusion:  # initialize in function create_model_and_diffusion
             batch_hf_info = th.stack(batch_hf_info).to(device)  # torch.Size([batch_size, 5, 3, 256, 256])
 
             # --------- SAMPLE FROM CODEBOOK ---------
-            return batch_noise_candidate, batch_hf_info, batch_hf_star, batch_r_t
-
-    def sample_x_0_t_minus_1_for_lpips(self, model, batch_x_t, timestep, clip_denoised, model_kwargs, batch_z_t_refined, device=None):
-
-        if device is None:
-            device = next(model.parameters()).device
-        t = th.tensor([timestep] * 1, device=device)
-        result_list = []
-        for i, x_t in enumerate(batch_x_t):
-            with th.no_grad():
-                out = self.p_mean_variance(
-                    model,
-                    x=x_t,
-                    t=t,
-                    clip_denoised=clip_denoised,
-                    model_kwargs=model_kwargs,
-                )
-            
-            nonzero_mask = (
-                (t != 0).float().view(-1, *([1] * (len(x_t.shape) - 1)))
-            ) 
-
-            x_t_minus_1= out["mean"] + nonzero_mask * th.exp(0.5 * out["log_variance"]) * batch_z_t_refined[i]
-
-            with th.no_grad():
-                out = self.p_mean_variance(
-                    model,
-                    x=x_t_minus_1,
-                    t=th.tensor([timestep - 1] * 1, device=device),
-                    clip_denoised=clip_denoised,
-                    model_kwargs=model_kwargs,
-                )
-            result_list.append(out['pred_xstart'].squeeze(0))
-        return th.stack(result_list).to(device)                 # torch.Size([32, 3, 256, 256])
-
+            return batch_z_t_candidate, batch_hf_info, batch_hf_star, batch_r_t
 
     def get_5_candidates_for_inference(
         self,
@@ -1171,20 +1138,20 @@ class GaussianDiffusion:  # initialize in function create_model_and_diffusion
     ):
         hf_star = laplacian_kernel(hq_img)
 
-        noise_candidate_list = []
-        x_t_candidate_list = []
+        z_t_candidate_list = []
+        x_t_minus_1_candidate_list = []
         for i in range(idxs.shape[0]):
-            noise_candidate_list.append(codebook[idxs[i]])
-            x_t_candidate_list.append(mu_x_t + th.exp(0.5 * log_sigma_t) * codebook[idxs[i]])
+            z_t_candidate_list.append(codebook[idxs[i]])
+            x_t_minus_1_candidate_list.append(mu_x_t + th.exp(0.5 * log_sigma_t) * codebook[idxs[i]])
        
 
         x_0_list = []
-        for x_t in x_t_candidate_list:
+        for x_t_minus_1 in x_t_minus_1_candidate_list:
             with th.no_grad():
                 batch_size = 1
                 x_0_list.append(self.p_mean_variance(
                         model,
-                        x_t,
+                        x_t_minus_1,
                         th.tensor([t.item() - 1] * batch_size, device=device),
                         clip_denoised=clip_denoised,
                         denoised_fn=denoised_fn,
@@ -1192,10 +1159,13 @@ class GaussianDiffusion:  # initialize in function create_model_and_diffusion
                 )['pred_xstart'])
         hf_info_list = [laplacian_kernel(x_0) for x_0 in x_0_list]
 
-        # for i, x_0 in enumerate(x_0_list):
-            # save_tensor_as_img(x_0, f'../visualize/x_0_candidate_{i}_timestep_{t.item()}.png')
+        if t.item() in [1, 30, 60, 90, 120, 150, 180, 199]:
+            for i, x_0 in enumerate(x_0_list):
+                save_tensor_as_img(x_0, f'../visualize/x_0_given_t_minus_1/_timestep_{t.item()}_candidate_{i}.png')
+            for i, hf_info in enumerate(hf_info_list):
+                save_tensor_as_img(hf_info, f'../visualize/hf_info_given_t_minus_1/timestep_{t.item()}_candidate_{i}.png')
 
-        return noise_candidate_list, hf_info_list, hf_star, x_0_list
+        return z_t_candidate_list, hf_info_list, hf_star, x_0_list
 ################################
 
     def ddim_sample(

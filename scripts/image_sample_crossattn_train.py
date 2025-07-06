@@ -194,11 +194,11 @@ def main():
         loss.backward()
         optimizer.step()
 
-        with open('../learning_curve.txt', 'a') as f:
+        with open('../learning_curve_imagenet.txt', 'a') as f:
             f.write(f'iteration {iteration} loss {loss}\n')
 
         if (iteration % n_save_interval == 0) or iteration == n_iterations-1:
-            refine_net.save_checkpoint(optimizer, iteration, path=repo_folder_path + f'train_with_batch_increase_dim_and_head_send_more_info/refine_net_epoch_{iteration}.pth')
+            refine_net.save_checkpoint(optimizer, iteration, path=repo_folder_path + f'send_more_info_train_imagenet_jun_06/refine_net_epoch_{iteration}.pth')
         
         
     dist.barrier()
