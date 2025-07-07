@@ -17,10 +17,10 @@ from .nn import mean_flat
 from .losses import normal_kl, discretized_gaussian_log_likelihood
 
 from noise_refine_model.softmax_attention import SoftmaxAttention
-from noise_refine_model.crossattn import laplacian_kernel, PixelCrossAttentionRefiner
+from noise_refine_model.crossattn import PixelCrossAttentionRefiner
 from PIL import Image
 from datetime import datetime
-from guided_diffusion.image_util import load_hq_image, save_tensor_as_img, Transmitter, Receiver
+from guided_diffusion.image_util import load_hq_image, save_tensor_as_img, Transmitter, Receiver, dwt_bilinear, laplacian_kernel
 
 def get_named_beta_schedule(schedule_name, num_diffusion_timesteps):
     """
@@ -1048,7 +1048,8 @@ class GaussianDiffusion:  # initialize in function create_model_and_diffusion
                 print('Step 1: Load HQ image')
             
             
-            batch_hf_star = laplacian_kernel(img_batch)
+            # batch_hf_star = laplacian_kernel(img_batch)
+            batch_hf_star = dwt_bilinear(img_batch)
 
             # --------- ADD NOISE INTO HQ IMAGE ---------
             if verbose:
@@ -1113,7 +1114,8 @@ class GaussianDiffusion:  # initialize in function create_model_and_diffusion
                             denoised_fn=denoised_fn,
                             model_kwargs=model_kwargs,
                     )['pred_xstart'] )
-                hf_info_list = [laplacian_kernel(x_0) for x_0 in x_0_list]
+                # hf_info_list = [laplacian_kernel(x_0) for x_0 in x_0_list]
+                hf_info_list = [dwt_bilinear(x_0) for x_0 in x_0_list]
 
                 batch_hf_info.append(th.stack(hf_info_list).squeeze(1).to(device))  # torch.Size([5, 3, 256, 256])
             
@@ -1136,7 +1138,8 @@ class GaussianDiffusion:  # initialize in function create_model_and_diffusion
         codebook=None,
         device=None
     ):
-        hf_star = laplacian_kernel(hq_img)
+        # hf_star = laplacian_kernel(hq_img)
+        hf_star = dwt_bilinear(hq_img)
 
         z_t_candidate_list = []
         x_t_minus_1_candidate_list = []
@@ -1157,7 +1160,8 @@ class GaussianDiffusion:  # initialize in function create_model_and_diffusion
                         denoised_fn=denoised_fn,
                         model_kwargs=model_kwargs
                 )['pred_xstart'])
-        hf_info_list = [laplacian_kernel(x_0) for x_0 in x_0_list]
+        # hf_info_list = [laplacian_kernel(x_0) for x_0 in x_0_list]
+        hf_info_list = [dwt_bilinear(x_0) for x_0 in x_0_list]
 
         if t.item() in [1, 30, 60, 90, 120, 150, 180, 199]:
             for i, x_0 in enumerate(x_0_list):

@@ -41,7 +41,7 @@ def create_argparser():
     return parser
 
 from PIL import Image
-from noise_refine_model.crossattn import laplacian_kernel, PixelCrossAttentionRefiner, AlexNetPerceptualLoss
+from noise_refine_model.crossattn import PixelCrossAttentionRefiner, AlexNetPerceptualLoss
 import torch.nn as nn
 import torch.optim as optim 
 
@@ -198,7 +198,7 @@ def main():
             f.write(f'iteration {iteration} loss {loss}\n')
 
         if (iteration % n_save_interval == 0) or iteration == n_iterations-1:
-            refine_net.save_checkpoint(optimizer, iteration, path=repo_folder_path + f'send_more_info_train_imagenet_jun_06/refine_net_epoch_{iteration}.pth')
+            refine_net.save_checkpoint(optimizer, iteration, path=repo_folder_path + f'send_more_info_train_imagenet_wavelet_jun_07/refine_net_epoch_{iteration}.pth')
         
         
     dist.barrier()
