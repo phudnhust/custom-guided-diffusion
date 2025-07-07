@@ -146,7 +146,7 @@ def main():
     dummy_count = 0
 
     epoches_loss_list = []
-    n_epoch = 500
+    n_epoch = 1000
     for epoch in range(0, n_epoch):
         print('epoch: ', epoch, end=' ')
         hq_img_batch = random.sample(hq_img_subset, batch_size)
@@ -154,7 +154,7 @@ def main():
         for hq_img_batch in tqdm(hq_img_batches, desc='Batch '):
             batch_size = len(hq_img_batch)
 
-            timestep = th.randint(1, 400, (1,)).item()      # [1, 399)
+            timestep = th.randint(1, 200, (1,)).item()      # [1, 199)
             # timestep = 200
 
             batch_noise_candidate = []
@@ -244,7 +244,7 @@ def main():
             epoch_loss_list.append(loss.item())
 
         if (epoch > 0 and epoch % 50 == 0) or epoch == n_epoch-1:
-            refine_net.save_checkpoint(optimizer, epoch, path=repo_folder_path + f'send_more_info_train_with_timestep_from_1_to_400/refine_net_epoch_{epoch}.pth')
+            refine_net.save_checkpoint(optimizer, epoch, path=repo_folder_path + f'send_more_info_train_with_obama_jun_06/refine_net_epoch_{epoch}.pth')
         epoch_loss = np.mean(epoch_loss_list)
         print('epoch_loss:', epoch_loss)
         epoches_loss_list.append(np.mean(epoch_loss))
