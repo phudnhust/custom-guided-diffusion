@@ -20,7 +20,7 @@ from noise_refine_model.softmax_attention import SoftmaxAttention
 from noise_refine_model.crossattn import PixelCrossAttentionRefiner
 from PIL import Image
 from datetime import datetime
-from guided_diffusion.image_util import load_hq_image, save_tensor_as_img, Transmitter, Receiver, dwt_bilinear, laplacian_kernel
+from guided_diffusion.image_util import load_hq_image, save_tensor_as_img, save_dwt_output_as_img, Transmitter, NewTransmitter, Receiver, dwt_bilinear, laplacian_kernel
 
 def get_named_beta_schedule(schedule_name, num_diffusion_timesteps):
     """
@@ -719,10 +719,47 @@ class GaussianDiffusion:  # initialize in function create_model_and_diffusion
 
 
                 print('t = ', t.item(), ' idxs = ', idxs, ' noise shape = ', noise.shape)
+            
+            elif isinstance(user_role, NewTransmitter):
+                residual = hq_img - out["pred_xstart"]
+                sims = th.einsum('kuwv,buwv->kb', codebook, residual)
+
+                selected = []
+                selected.append(sims.argmax(0).item())
+
+                flatten = lambda x: x.reshape(x.shape[0], -1)  # flatten over spatial dims
+                codebook_flat = flatten(codebook)  # [N, C*H*W]
+
+
+                def cosine_sim(a, b):
+                    return th.nn.functional.cosine_similarity(a.unsqueeze(0), b.unsqueeze(0)).item()
+
+                while len(selected) < 5:
+                    remaining = list(set(range(len(codebook_flat))) - set(selected))
+                    # print('remaining: ', remaining)
+                    min_sim = float('inf')
+                    best_idx = None
+                    for idx in remaining:
+                        sim = max([cosine_sim(codebook_flat[idx], codebook_flat[j]) for j in selected])
+                        if sim < min_sim:
+                            min_sim = sim
+                            best_idx = idx
+                    selected.append(best_idx)
+
+                idxs = th.tensor(selected).unsqueeze(1)
+                print('idxs:' , idxs)
+                noise = residual
+            
             elif isinstance(user_role, Receiver):     # receiver's side
-              
+                residual = hq_img - out["pred_xstart"]
+                with open('../residual_mean_std.txt', 'a') as f:
+                    f.write(f'{t.item()},{residual.mean()},{residual.std()}\n')
+
                 idxs = th.tensor(user_role.indices_dict[t.item()], device=device) 
                 noise = codebook[idxs[0]]
+
+                # if (t.item() < 200):
+                    # noise = codebook[idxs[3]]
 
                 # print("codebook shape:", codebook.shape)
                 # print("noise shape:", noise.shape)
@@ -732,10 +769,10 @@ class GaussianDiffusion:  # initialize in function create_model_and_diffusion
                 # print(f'anchor noise: shape {noise.shape} mean {noise.mean()} std {noise.std()} min {noise.min()} max {noise.max()}')
 
                 if noise_refine_model is None:
-                    print('using basedline DDCM')
+                    print(f'using basedline DDCM t = {t.item()}')
                     pass
                 elif type(noise_refine_model) is PixelCrossAttentionRefiner:
-                    if (t.item() > 0) and (t.item() < 200):
+                    if (t.item() > 0) and (t.item() < 400):
 
                         z_t_candidate_list, hf_info_list, hf_star, x_0_list = self.get_5_candidates_for_inference(model,
                                                                     out['mean'],
@@ -747,7 +784,11 @@ class GaussianDiffusion:  # initialize in function create_model_and_diffusion
                                                                     model_kwargs,
                                                                     hq_img,       # high quality image
                                                                     codebook,
-                                                                    device)
+                                                                    device,
+                                                                    hq_img - out["pred_xstart"])
+                      
+
+
                         # if t.item() in [10, 30, 50, 100, 150, 199]:
                             # for i, x_0_candidate in enumerate(x_0_list):
                                     # x_0_candidate = ((x_0_candidate + 1) * 127.5).clamp(0, 255).to(th.uint8)
@@ -770,11 +811,16 @@ class GaussianDiffusion:  # initialize in function create_model_and_diffusion
                         # print('batch_hf_star.dtype: ', batch_hf_star.dtype)
 
                         # noise = 0.5* (hq_img - out["pred_xstart"]) + 0.5 * noise_refine_model(batch_hf_star, batch_hf_info, batch_noise_candidate)
-                        noise = noise_refine_model(batch_hf_star, batch_hf_info, batch_noise_candidate)
-                        print('noise mean: ', noise.mean().item(),
-                              ' std: ', noise.std().item(),
-                              ' min: ', noise.min().item(),
-                              ' max: ', noise.max().item())
+                        _, noise = noise_refine_model(batch_hf_star, batch_hf_info, batch_noise_candidate)
+
+
+                        with open('../predict_mean_std.txt', 'a') as f:
+                            f.write(f'{t.item()},{noise.mean()},{noise.std()}\n')
+
+                        # print('noise mean: ', noise.mean().item(),
+                            #   ' std: ', noise.std().item(),
+                            #   ' min: ', noise.min().item(),
+                            #   ' max: ', noise.max().item())
                         self.refine_noise_list.append(noise)
 
                         # if t.item() == 190:
@@ -783,7 +829,9 @@ class GaussianDiffusion:  # initialize in function create_model_and_diffusion
 
 
                         # noise = hq_img - out["pred_xstart"]
-                    print('t=', t.item(), '\t loss(refine noise, ground truth residual) = ', th.nn.L1Loss()(hq_img - out["pred_xstart"], noise))
+                    with open('../refine_and_residual_l1_loss.txt', 'a') as f:
+                        f.write(f'{t.item()}, {th.nn.L1Loss()(hq_img - out["pred_xstart"], noise).item()}\n')
+                    
 
                 elif type(noise_refine_model) is SoftmaxAttention: # pure softmax attention
 
@@ -1076,15 +1124,39 @@ class GaussianDiffusion:  # initialize in function create_model_and_diffusion
             for i in range(batch_size):
                 x0 = img_batch[i]
                 x0_pred = out_sampled_from_x_t["pred_xstart"][i]
+                residual = (x0 - x0_pred).unsqueeze(0)
 
-                sims = th.einsum('kuwv,buwv->kb', codebook, (x0 - x0_pred).unsqueeze(0))
-                
-                _, sims_index = th.topk(sims, k=5, dim=0, largest=True)
+                ###
+                sims = th.einsum('kuwv,buwv->kb', codebook, residual)
+
+                selected = []
+                selected.append(sims.argmax(0).item())
+
+                flatten = lambda x: x.reshape(x.shape[0], -1)  # flatten over spatial dims
+                codebook_flat = flatten(codebook)  # [N, C*H*W]
+
+                def cosine_sim(a, b):
+                    return th.nn.functional.cosine_similarity(a.unsqueeze(0), b.unsqueeze(0)).item()
+
+                while len(selected) < 5:
+                    remaining = list(set(range(len(codebook_flat))) - set(selected))
+                    # print('remaining: ', remaining)
+                    min_sim = float('inf')
+                    best_idx = None
+                    for idx in remaining:
+                        sim = max([cosine_sim(codebook_flat[idx], codebook_flat[j]) for j in selected])
+                        if sim < min_sim:
+                            min_sim = sim
+                            best_idx = idx
+                    selected.append(best_idx)
+
+                idxs = th.tensor(selected).unsqueeze(1)
+                ###
 
                 z_t_candidate_list = []
                 x_t_candidate_list = []
               
-                top5_vectors = codebook[sims_index]                             # (topk, 1, C, H, W)
+                top5_vectors = codebook[idxs]                             # (topk, 1, C, H, W)
                 for k in range(top5_vectors.shape[0]):
                     z_t_candidate_list.append(top5_vectors[k])
                     x_t_candidate_list.append(out_sampled_from_x_t['mean'][i] + th.exp(0.5 * out_sampled_from_x_t['log_variance'][i]) * top5_vectors[k])
@@ -1122,7 +1194,7 @@ class GaussianDiffusion:  # initialize in function create_model_and_diffusion
             batch_hf_info = th.stack(batch_hf_info).to(device)  # torch.Size([batch_size, 5, 3, 256, 256])
 
             # --------- SAMPLE FROM CODEBOOK ---------
-            return batch_z_t_candidate, batch_hf_info, batch_hf_star, batch_r_t
+            return batch_z_t_candidate, batch_hf_info * 10., batch_hf_star, batch_r_t
 
     def get_5_candidates_for_inference(
         self,
@@ -1136,7 +1208,8 @@ class GaussianDiffusion:  # initialize in function create_model_and_diffusion
         model_kwargs=None,
         hq_img=None,       # high quality image
         codebook=None,
-        device=None
+        device=None,
+        residual=None
     ):
         # hf_star = laplacian_kernel(hq_img)
         hf_star = dwt_bilinear(hq_img)
@@ -1146,6 +1219,10 @@ class GaussianDiffusion:  # initialize in function create_model_and_diffusion
         for i in range(idxs.shape[0]):
             z_t_candidate_list.append(codebook[idxs[i]])
             x_t_minus_1_candidate_list.append(mu_x_t + th.exp(0.5 * log_sigma_t) * codebook[idxs[i]])
+
+        """ TEST """
+        z_t_candidate_list[-1] = residual
+        z_t_candidate_list[-2] = residual
        
 
         x_0_list = []
@@ -1163,11 +1240,17 @@ class GaussianDiffusion:  # initialize in function create_model_and_diffusion
         # hf_info_list = [laplacian_kernel(x_0) for x_0 in x_0_list]
         hf_info_list = [dwt_bilinear(x_0) for x_0 in x_0_list]
 
-        if t.item() in [1, 30, 60, 90, 120, 150, 180, 199]:
+        """ TEST """
+        # hf_info_list[-1] = hf_star
+        # hf_info_list[-2] = hf_star
+
+        """ VISUALIZE HF"""
+        if t.item() in [1, 99, 199, 299, 399]:
             for i, x_0 in enumerate(x_0_list):
                 save_tensor_as_img(x_0, f'../visualize/x_0_given_t_minus_1/_timestep_{t.item()}_candidate_{i}.png')
             for i, hf_info in enumerate(hf_info_list):
-                save_tensor_as_img(hf_info, f'../visualize/hf_info_given_t_minus_1/timestep_{t.item()}_candidate_{i}.png')
+                # save_tensor_as_img(hf_info, f'../visualize/hf_info_given_t_minus_1/timestep_{t.item()}_candidate_{i}.png')
+                save_dwt_output_as_img(hf_info, f'../visualize/hf_info_given_t_minus_1/timestep_{t.item()}_candidate_{i}.png')
 
         return z_t_candidate_list, hf_info_list, hf_star, x_0_list
 ################################

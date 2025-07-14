@@ -167,7 +167,7 @@ def main():
     n_iterations = 2000
     n_save_interval = 50
     for iteration in tqdm(range(n_iterations), desc='Training iterations'):
-        timestep = th.randint(1, 200, (1,)).item()      # [1, 199)
+        timestep = th.randint(1, 200, (1,)).item()      # [1, 399)
         img_batch, _ = next(data)
         img_batch = img_batch.to(dist_util.dev())  # torch.Size([32, 3, 256, 256])
 
@@ -186,10 +186,27 @@ def main():
         # batch_hf_info.shape:          torch.Size([32, 5, 3, 256, 256])
         # batch_hf_star.shape:          torch.Size([32, 3, 256, 256])
         # batch_r_t.shape:              torch.Size([32, 3, 256, 256])
-    
-        z_hat = refine_net(batch_hf_star, batch_hf_info, batch_noise_candidate)  # → [B, 3, H, W]
 
-        loss = criterion(z_hat, batch_r_t) 
+        """ CHECK IF CANDIDATES ARE TOO SIMILAR TO HF_STAR """
+        b = 0  # batch index
+        for k in range(5):
+            diff = (batch_hf_star[b] - batch_hf_info[b,k]).abs().mean()
+            print(f"Diff between HF_star and cand {k}: {diff.item():.6f}")
+                        
+        """ CHECK IF CANDIDATES ARE TOO SIMILAR TO EACH OTHER """
+        mean_diff_matrix = th.zeros((5,5))
+        for k1 in range(5):
+            for k2 in range(5):
+                if k1 == k2: continue
+                diff = (batch_hf_info[:,k1] - batch_hf_info[:,k2]).abs().mean()
+                mean_diff_matrix[k1,k2] = diff
+        print("Avg difference between candidates across batch:\n", mean_diff_matrix)
+
+    
+        z_star, z_hat = refine_net(batch_hf_star, batch_hf_info, batch_noise_candidate)  # → [B, 3, H, W]
+
+        # loss = nn.functional.l1_loss(z_hat, batch_r_t) + 1.0 * nn.functional.l1_loss(z_star, batch_r_t)  # ép attention head 1 học một output có ích
+        loss = nn.functional.l1_loss(z_hat, batch_r_t)
         optimizer.zero_grad()
         loss.backward()
         optimizer.step()
@@ -198,7 +215,7 @@ def main():
             f.write(f'iteration {iteration} loss {loss}\n')
 
         if (iteration % n_save_interval == 0) or iteration == n_iterations-1:
-            refine_net.save_checkpoint(optimizer, iteration, path=repo_folder_path + f'send_more_info_train_imagenet_wavelet_jun_07/refine_net_epoch_{iteration}.pth')
+            refine_net.save_checkpoint(optimizer, iteration, path=repo_folder_path + f'send_more_info_train_imagenet_wavelet_jul_14/refine_net_epoch_{iteration}.pth')
         
         
     dist.barrier()

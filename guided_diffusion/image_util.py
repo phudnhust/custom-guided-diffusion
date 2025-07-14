@@ -53,6 +53,12 @@ def dwt_bilinear(img):
     # print('img_H len', len(img_H))     # 1
     # print('img_H[0].shape: ', img_H[0].shape)   # torch.Size([32, 3, 3, 128, 128])
 
+    """
+    [ , , 0, , ] → LH
+    [ , , 1, , ] → HL
+    [ , , 2, , ] → HH
+    """
+
     wavelet_coeff = img_H[0]
     B, C, D, H, W = wavelet_coeff.shape
 
@@ -75,6 +81,38 @@ def dwt_bilinear(img):
 
     return wavelet_coeff_upsampled
 
+def save_dwt_output_as_img(dwf_hf_info, path):
+    """
+        dwt_output.shape: [B, C, 3, 256, 256] (already interpolated to have same shape with the input image)
+    """
+    # print('dwf_hf_info.shape: ', dwf_hf_info.shape) # torch.Size([1, 3, 3, 256, 256])
+    details = dwf_hf_info[0,0]  # shape [3, H, W]
+
+    """
+        details[0] = LH
+        details[1] = HL
+        details[2] = HH
+    """
+    # print('details.shape: ', details.shape)
+
+    # [3, H, W] → [H, W, 3]
+    details_rgb = details.permute(1, 2, 0).cpu()
+
+    # normalize to 0-255
+    details_rgb -= details_rgb.min()
+    details_rgb /= details_rgb.max()
+    details_rgb *= 255.0
+
+    # convert to uint8
+    details_rgb = details_rgb.byte()
+
+    # convert to PIL
+    details_pil = Image.fromarray(details_rgb.numpy())
+
+    # save
+    details_pil.save(path)
+
+
 def save_tensor_as_img(dummy_tensor, path):
     dummy_tensor = ((dummy_tensor + 1) * 127.5).clamp(0, 255).to(th.uint8).permute(0, 2, 3, 1).contiguous().cpu().numpy()  # shape: (N, H, W, C)
     dummy_tensor = Image.fromarray(dummy_tensor[0])
@@ -82,6 +120,14 @@ def save_tensor_as_img(dummy_tensor, path):
 
 class Transmitter:
     def __init__(self):
+        pass
+
+class NewTransmitter:
+    def __init__(self):
+        """
+            At every timestep, using residual as the forward information to the next timestep,
+            and send 5 indices whose span best represents the residual.
+        """
         pass
 
 class Receiver:

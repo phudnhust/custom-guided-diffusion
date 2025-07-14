@@ -99,7 +99,14 @@ class PixelCrossAttentionRefiner(nn.Module):
         _, attention_weights = attn(Query, Key, dummy_value_for_attn)   # [B*N, 1, K] = [2097152, 1, 5]
         attention_weights = nn.functional.normalize(attention_weights, p=2, dim=-1)
 
-        # print('attention_weights: ', attention_weights)     # check constraint sum(square) = 1 -> OK
+        if q_proj.in_features == self.q1.in_features:
+            print('q_proj_1.weight: ', q_proj.weight)
+            print('k_proj_1.weight: ', k_proj.weight)
+            print('attention_weights 1: ', attention_weights)     # check constraint sum(square) = 1 -> OK
+        else:
+            print('q_proj_2.weight: ', q_proj.weight)
+            print('k_proj_2.weight: ', k_proj.weight)
+            print('attention_weights 2: ', attention_weights)     # check constraint sum(square) = 1 -> OK
         # print('attention_weights.shape: ', attention_weights.shape)     # check constraint sum(square) = 1 -> OK
 
 
@@ -213,7 +220,7 @@ class PixelCrossAttentionRefiner(nn.Module):
         # print('V2.shape ', V2.shape)
         z_hat = self._cross_attn(Q2, K2, V2, self.q2, self.k2, self.v2, self.attn2)
 
-        return z_hat  # [B, embed_dim, H, W]
+        return z_star, z_hat  # [B, embed_dim, H, W]
 
 
     def save_checkpoint(self, optimizer, epoch, path="refiner_checkpoint.pth"):
