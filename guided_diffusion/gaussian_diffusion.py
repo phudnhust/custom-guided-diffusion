@@ -1086,18 +1086,9 @@ class GaussianDiffusion:  # initialize in function create_model_and_diffusion
             """
             Return (z_t_candidate_list, hf_info_list, hf_star, r_t) to train the refine model
             """
+
             if device is None:
                 device = next(model.parameters()).device
-
-            # --------- LOAD HQ IMAGE ---------
-            if verbose:
-                print('device:', device)
-                print('timestep: ', timestep)
-                print('Step 1: Load HQ image')
-            
-            
-            # batch_hf_star = laplacian_kernel(img_batch)
-            batch_hf_star = dwt_bilinear(img_batch)
 
             # --------- ADD NOISE INTO HQ IMAGE ---------
             if verbose:
@@ -1105,8 +1096,7 @@ class GaussianDiffusion:  # initialize in function create_model_and_diffusion
             batch_size = img_batch.shape[0]
             x_t = self.q_sample(x_start=img_batch, t=th.tensor([timestep] * batch_size, device=device))
 
-            # -------- CREATE 5 CANDIDATES OF x_t -------
-
+            # -------- GENERATE r* -----------
             with th.no_grad():
                 out_sampled_from_x_t = self.p_mean_variance(
                     model,
@@ -1116,6 +1106,18 @@ class GaussianDiffusion:  # initialize in function create_model_and_diffusion
                     denoised_fn=denoised_fn,
                     model_kwargs=model_kwargs,
                 )
+                batch_x_t_minus_1_star = out_sampled_from_x_t['mean']  + th.exp(0.5 * out_sampled_from_x_t['log_variance']) * (img_batch - out_sampled_from_x_t['pred_xstart'])             # torch.Size([batch_size, 5, 3, 256, 256])
+                batch_r_t_minus_1_star = img_batch - self.p_mean_variance(
+                        model,
+                        batch_x_t_minus_1_star,
+                        th.tensor([timestep - 1] * batch_size, device=device),
+                        clip_denoised=clip_denoised,
+                        denoised_fn=denoised_fn,
+                        model_kwargs=model_kwargs,
+                )['pred_xstart']        # torch.Size([batch_size, 5, 3, 256, 256])
+
+
+            # -------- CREATE 5 CANDIDATES OF RESIDUAL -------
 
             codebook = th.from_numpy(codebook).to(device).type(th.float32)
             batch_z_t_candidate = []
@@ -1154,23 +1156,23 @@ class GaussianDiffusion:  # initialize in function create_model_and_diffusion
                 ###
 
                 z_t_candidate_list = []
-                x_t_candidate_list = []
+                x_t_minus_1_candidate_list = []
               
                 top5_vectors = codebook[idxs]                             # (topk, 1, C, H, W)
                 for k in range(top5_vectors.shape[0]):
                     z_t_candidate_list.append(top5_vectors[k])
-                    x_t_candidate_list.append(out_sampled_from_x_t['mean'][i] + th.exp(0.5 * out_sampled_from_x_t['log_variance'][i]) * top5_vectors[k])
+                    x_t_minus_1_candidate_list.append(out_sampled_from_x_t['mean'][i] + th.exp(0.5 * out_sampled_from_x_t['log_variance'][i]) * top5_vectors[k])
 
                 batch_z_t_candidate.append(th.stack(z_t_candidate_list).squeeze(1))     # torch.Size([5, 3, 256, 256])
-                batch_x_t_minus_1_candidate.append(th.stack(x_t_candidate_list).squeeze(1))         # torch.Size([5, 3, 256, 256])
+                batch_x_t_minus_1_candidate.append(th.stack(x_t_minus_1_candidate_list).squeeze(1))         # torch.Size([5, 3, 256, 256])
 
             batch_z_t_candidate = th.stack(batch_z_t_candidate).to(device)   # torch.Size([batch_size, 5, 3, 256, 256])
             batch_x_t_minus_1_candidate = th.stack(batch_x_t_minus_1_candidate).to(device)       # torch.Size([batch_size, 5, 3, 256, 256])
             batch_r_t = img_batch - out_sampled_from_x_t['pred_xstart']
 
-            batch_hf_info = []
-
+            batch_r_t_minus_1_candidate = []
             for i in range(batch_size):
+                x_start = img_batch[i]
                 x_t_minus_1_candidate = batch_x_t_minus_1_candidate[i]  # torch.Size([5, 3, 256, 256])
 
 
@@ -1186,15 +1188,14 @@ class GaussianDiffusion:  # initialize in function create_model_and_diffusion
                             denoised_fn=denoised_fn,
                             model_kwargs=model_kwargs,
                     )['pred_xstart'] )
-                # hf_info_list = [laplacian_kernel(x_0) for x_0 in x_0_list]
-                hf_info_list = [dwt_bilinear(x_0) for x_0 in x_0_list]
+                r_t_minus_1_candidate = [x_start-x_0 for x_0 in x_0_list]
 
-                batch_hf_info.append(th.stack(hf_info_list).squeeze(1).to(device))  # torch.Size([5, 3, 256, 256])
+                batch_r_t_minus_1_candidate.append(th.stack(r_t_minus_1_candidate).squeeze(1).to(device))  # torch.Size([5, 3, 256, 256])
             
-            batch_hf_info = th.stack(batch_hf_info).to(device)  # torch.Size([batch_size, 5, 3, 256, 256])
+            batch_r_t_minus_1_candidate = th.stack(batch_r_t_minus_1_candidate).to(device)  # torch.Size([batch_size, 5, 3, 256, 256])
 
-            # --------- SAMPLE FROM CODEBOOK ---------
-            return batch_z_t_candidate, batch_hf_info * 10., batch_hf_star, batch_r_t
+            return batch_z_t_candidate, batch_r_t_minus_1_candidate, batch_r_t_minus_1_star, batch_r_t
+
 
     def get_5_candidates_for_inference(
         self,

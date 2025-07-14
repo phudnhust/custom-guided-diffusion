@@ -171,7 +171,8 @@ def main():
         img_batch, _ = next(data)
         img_batch = img_batch.to(dist_util.dev())  # torch.Size([32, 3, 256, 256])
 
-        batch_noise_candidate, batch_hf_info, batch_hf_star, batch_r_t = diffusion.get_5_candidates_for_train(
+        #  batch_noise_candidate, batch_hf_info, batch_hf_star, batch_r_t 
+        batch_z_t_candidate, batch_r_t_minus_1_candidate, batch_r_t_minus_1_star, batch_r_t= diffusion.get_5_candidates_for_train(
             model,
             shape=(batch_size, 3, args.image_size, args.image_size),
             clip_denoised=args.clip_denoised,
@@ -190,7 +191,7 @@ def main():
         """ CHECK IF CANDIDATES ARE TOO SIMILAR TO HF_STAR """
         b = 0  # batch index
         for k in range(5):
-            diff = (batch_hf_star[b] - batch_hf_info[b,k]).abs().mean()
+            diff = (batch_r_t_minus_1_star[b] - batch_r_t_minus_1_candidate[b,k]).abs().mean()
             print(f"Diff between HF_star and cand {k}: {diff.item():.6f}")
                         
         """ CHECK IF CANDIDATES ARE TOO SIMILAR TO EACH OTHER """
@@ -198,12 +199,13 @@ def main():
         for k1 in range(5):
             for k2 in range(5):
                 if k1 == k2: continue
-                diff = (batch_hf_info[:,k1] - batch_hf_info[:,k2]).abs().mean()
+                diff = (batch_r_t_minus_1_candidate[:,k1] - batch_r_t_minus_1_candidate[:,k2]).abs().mean()
                 mean_diff_matrix[k1,k2] = diff
         print("Avg difference between candidates across batch:\n", mean_diff_matrix)
 
     
-        z_star, z_hat = refine_net(batch_hf_star, batch_hf_info, batch_noise_candidate)  # → [B, 3, H, W]
+        # z_star, z_hat = refine_net(batch_hf_star, batch_hf_info, batch_noise_candidate)  # → [B, 3, H, W]
+        z_star, z_hat = refine_net(batch_r_t_minus_1_star, batch_r_t_minus_1_candidate, batch_z_t_candidate)  # → [B, 3, H, W]
 
         # loss = nn.functional.l1_loss(z_hat, batch_r_t) + 1.0 * nn.functional.l1_loss(z_star, batch_r_t)  # ép attention head 1 học một output có ích
         loss = nn.functional.l1_loss(z_hat, batch_r_t)
@@ -215,7 +217,7 @@ def main():
             f.write(f'iteration {iteration} loss {loss}\n')
 
         if (iteration % n_save_interval == 0) or iteration == n_iterations-1:
-            refine_net.save_checkpoint(optimizer, iteration, path=repo_folder_path + f'send_more_info_train_imagenet_wavelet_jul_14/refine_net_epoch_{iteration}.pth')
+            refine_net.save_checkpoint(optimizer, iteration, path=repo_folder_path + f'send_more_info_train_imagenet_wavelet_residual_jul_14/refine_net_epoch_{iteration}.pth')
         
         
     dist.barrier()

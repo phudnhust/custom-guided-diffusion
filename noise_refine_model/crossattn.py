@@ -25,23 +25,27 @@ class PixelCrossAttentionRefiner(nn.Module):
         if embed_dim % num_heads != 0:
             raise ValueError(f"embed_dim ({embed_dim}) must be divisible by num_heads ({num_heads})")
             
-        # self.feat_dim = feat_dim
-        self.feat_dim = feat_dim * 3
+        self.feat_dim = feat_dim
         self.embed_dim = embed_dim
+        
         # first block: input is (C + 2 coords) → embed_dim
-        # self.q1 = nn.Linear(feat_dim + 2, embed_dim)
-        self.q1 = nn.Linear(feat_dim * 3 + 2, embed_dim)
-        # self.k1 = nn.Linear(feat_dim + 2, embed_dim)
-        self.k1 = nn.Linear(feat_dim * 3 + 2, embed_dim)
+        self.q1 = nn.Linear(feat_dim + 2, embed_dim)
+        self.k1 = nn.Linear(feat_dim + 2, embed_dim)
         self.v1 = nn.Linear(feat_dim    , embed_dim)  # values don't need coords
 
         # second block: input is (C + embed_dim + 2 coords) → embed_dim
-        # self.q2 = nn.Linear(feat_dim + feat_dim + 2, embed_dim)
-        self.q2 = nn.Linear(feat_dim + feat_dim * 3 + 2, embed_dim)
-        # self.k2 = nn.Linear(feat_dim + feat_dim + 2, embed_dim)
-        self.k2 = nn.Linear(feat_dim + feat_dim * 3 + 2, embed_dim)
-        # self.v2 = nn.Linear(feat_dim + embed_dim    , embed_dim)
+        self.q2 = nn.Linear(feat_dim + feat_dim + 2, embed_dim)
+        self.k2 = nn.Linear(feat_dim + feat_dim + 2, embed_dim)
         self.v2 = nn.Linear(feat_dim    , embed_dim)  # values don't need coords
+
+        # self.feat_dim = feat_dim * 3
+        # self.q1 = nn.Linear(feat_dim * 3 + 2, embed_dim)
+        # self.k1 = nn.Linear(feat_dim * 3 + 2, embed_dim)
+        # self.v1 = nn.Linear(feat_dim    , embed_dim)  # values don't need coords
+
+        # self.q2 = nn.Linear(feat_dim + feat_dim * 3 + 2, embed_dim)
+        # self.k2 = nn.Linear(feat_dim + feat_dim * 3 + 2, embed_dim)
+        # self.v2 = nn.Linear(feat_dim    , embed_dim)  # values don't need coords
 
         self.attn1 = nn.MultiheadAttention(embed_dim, num_heads, batch_first=False)
         self.attn2 = nn.MultiheadAttention(embed_dim, num_heads, batch_first=False)
@@ -116,111 +120,111 @@ class PixelCrossAttentionRefiner(nn.Module):
 
         return out                      # [B, E, H, W]
 
-    # def forward(self, HF_star, HF_cands, Z_cands):
-    #     B, C, H, W = HF_star.shape
-    #     K = HF_cands.size(1)
-    #     device = HF_star.device
-
-    #     # build normalized coord channels
-    #     i = torch.linspace(0, 1, H, device=device)
-    #     j = torch.linspace(0, 1, W, device=device)
-    #     i_grid, j_grid = torch.meshgrid(i, j, indexing='ij')
-    #     i_grid = i_grid.unsqueeze(0).unsqueeze(0).expand(B,1,H,W)
-    #     j_grid = j_grid.unsqueeze(0).unsqueeze(0).expand(B,1,H,W)
-
-    #     # --- first cross‐attention ---
-    #     Q1 = torch.cat([HF_star, i_grid, j_grid], dim=1)            # [B, C+2, H, W]
-    #     # print("Q1 channels:", Q1.shape[1])    # should equal feat_dim + 2
-    #     # print("self.feat_dim + 2 = ", self.feat_dim + 2)    # should equal feat_dim + 2
-    #     # print()
-
-    #     i_k = i_grid.unsqueeze(1).expand(-1,K,-1,-1,-1)             # [B,K,1,H,W]
-    #     j_k = j_grid.unsqueeze(1).expand(-1,K,-1,-1,-1)             # [B,K,1,H,W]
-    #     K1 = torch.cat([HF_cands, i_k, j_k], dim=2)                 # [B,K,C+2,H,W]
-    #     V1 = Z_cands                                               # [B,K,C, H, W]
-    #     z_star = self._cross_attn(Q1, K1, V1, self.q1, self.k1, self.v1, self.attn1)
-    #     # return z_star
-    
-    #     # --- second cross‐attention ---
-    #     z_star_exp = z_star.unsqueeze(1).expand(-1,K,-1,-1,-1)      # [B,K,embed_dim,H,W]
-    #     Q2 = torch.cat([HF_star, z_star, i_grid, j_grid], dim=1)    # [B,C+E+2,H,W]
-    #     K2 = torch.cat([HF_cands, z_star_exp, i_k, j_k],    dim=2)  # [B,K,C+E+2,H,W]
-    #     # V2 = torch.cat([Z_cands,   z_star_exp],            dim=2)  # [B,K,C+E   ,H,W]
-    #     V2 = Z_cands
-    #     z_hat = self._cross_attn(Q2, K2, V2, self.q2, self.k2, self.v2, self.attn2)
-
-    #     return z_hat  # [B, embed_dim, H, W]
-    
-
     def forward(self, HF_star, HF_cands, Z_cands):
-        """
-        HF_star:  [B, 3, 3, H, W]   (3 color channels, 3 wavelet subbands)
-        HF_cands: [B, K, 3, 3, H, W]
-        Z_cands:  [B, K, 3, H, W]
-        """
-
-        # print('HF_star.shape ', HF_star.shape)
-        # print('HF_cands.shape ', HF_cands.shape)
-        # print('Z_cands.shape ', Z_cands.shape)
-
-        B, C, S, H, W = HF_star.shape      # C=3 color channels, S=3 subbands
-        K = HF_cands.shape[1]              # number of candidates
-
-        # flatten color channels and subbands into 9 features
-        HF_star = HF_star.view(B, C*S, H, W)             # [B, 9, H, W]
-        HF_cands = HF_cands.view(B, K, C*S, H, W)        # [B, K, 9, H, W]
-        feat_dim = C * S                                 # 9
-
+        B, C, H, W = HF_star.shape
+        K = HF_cands.size(1)
         device = HF_star.device
 
-        # positional coords
+        # build normalized coord channels
         i = torch.linspace(0, 1, H, device=device)
         j = torch.linspace(0, 1, W, device=device)
         i_grid, j_grid = torch.meshgrid(i, j, indexing='ij')
-        i_grid = i_grid.unsqueeze(0).unsqueeze(0).expand(B,1,H,W)   # [B,1,H,W]
-        j_grid = j_grid.unsqueeze(0).unsqueeze(0).expand(B,1,H,W)   # [B,1,H,W]
+        i_grid = i_grid.unsqueeze(0).unsqueeze(0).expand(B,1,H,W)
+        j_grid = j_grid.unsqueeze(0).unsqueeze(0).expand(B,1,H,W)
 
-        # ------------------------
-        # FIRST CROSS-ATTENTION
-        # ------------------------
-        # Q1: [B, 9+2, H, W]
-        Q1 = torch.cat([HF_star, i_grid, j_grid], dim=1)
+        # --- first cross‐attention ---
+        Q1 = torch.cat([HF_star, i_grid, j_grid], dim=1)            # [B, C+2, H, W]
+        # print("Q1 channels:", Q1.shape[1])    # should equal feat_dim + 2
+        # print("self.feat_dim + 2 = ", self.feat_dim + 2)    # should equal feat_dim + 2
+        # print()
 
-        # K1: [B,K,9+2,H,W]
-        i_k = i_grid.unsqueeze(1).expand(-1,K,-1,-1,-1)     # [B,K,1,H,W]
-        j_k = j_grid.unsqueeze(1).expand(-1,K,-1,-1,-1)     # [B,K,1,H,W]
-        K1 = torch.cat([HF_cands, i_k, j_k], dim=2)
-
-        # V1: [B,K,3,H,W]  (as before)
-        V1 = Z_cands
-
-        # output z_star: [B, embed_dim, H, W]
-        # print('Q1.shape ', Q1.shape)
-        # print('K1.shape ', K1.shape)
-        # print('V1.shape ', V1.shape)
+        i_k = i_grid.unsqueeze(1).expand(-1,K,-1,-1,-1)             # [B,K,1,H,W]
+        j_k = j_grid.unsqueeze(1).expand(-1,K,-1,-1,-1)             # [B,K,1,H,W]
+        K1 = torch.cat([HF_cands, i_k, j_k], dim=2)                 # [B,K,C+2,H,W]
+        V1 = Z_cands                                               # [B,K,C, H, W]
         z_star = self._cross_attn(Q1, K1, V1, self.q1, self.k1, self.v1, self.attn1)
-        # print('z_star.shape: ', z_star.shape)
-
-        # ------------------------
-        # SECOND CROSS-ATTENTION
-        # ------------------------
-        z_star_exp = z_star.unsqueeze(1).expand(-1,K,-1,-1,-1)  # [B,K,embed_dim,H,W]
-
-        # Q2: [B, 9 + embed_dim + 2, H, W]
-        Q2 = torch.cat([HF_star, z_star, i_grid, j_grid], dim=1)
-
-        # K2: [B,K,9 + embed_dim + 2, H, W]
-        K2 = torch.cat([HF_cands, z_star_exp, i_k, j_k], dim=2)
-
-        # V2 stays same as V1: [B,K,3,H,W]
+        # return z_star
+    
+        # --- second cross‐attention ---
+        z_star_exp = z_star.unsqueeze(1).expand(-1,K,-1,-1,-1)      # [B,K,embed_dim,H,W]
+        Q2 = torch.cat([HF_star, z_star, i_grid, j_grid], dim=1)    # [B,C+E+2,H,W]
+        K2 = torch.cat([HF_cands, z_star_exp, i_k, j_k],    dim=2)  # [B,K,C+E+2,H,W]
+        # V2 = torch.cat([Z_cands,   z_star_exp],            dim=2)  # [B,K,C+E   ,H,W]
         V2 = Z_cands
-
-        # print('Q2.shape ', Q2.shape)
-        # print('K2.shape ', K2.shape)
-        # print('V2.shape ', V2.shape)
         z_hat = self._cross_attn(Q2, K2, V2, self.q2, self.k2, self.v2, self.attn2)
 
         return z_star, z_hat  # [B, embed_dim, H, W]
+    
+
+    # def forward(self, HF_star, HF_cands, Z_cands):
+    #     """
+    #     HF_star:  [B, 3, 3, H, W]   (3 color channels, 3 wavelet subbands)
+    #     HF_cands: [B, K, 3, 3, H, W]
+    #     Z_cands:  [B, K, 3, H, W]
+    #     """
+
+    #     # print('HF_star.shape ', HF_star.shape)
+    #     # print('HF_cands.shape ', HF_cands.shape)
+    #     # print('Z_cands.shape ', Z_cands.shape)
+
+    #     B, C, S, H, W = HF_star.shape      # C=3 color channels, S=3 subbands
+    #     K = HF_cands.shape[1]              # number of candidates
+
+    #     # flatten color channels and subbands into 9 features
+    #     HF_star = HF_star.view(B, C*S, H, W)             # [B, 9, H, W]
+    #     HF_cands = HF_cands.view(B, K, C*S, H, W)        # [B, K, 9, H, W]
+    #     feat_dim = C * S                                 # 9
+
+    #     device = HF_star.device
+
+    #     # positional coords
+    #     i = torch.linspace(0, 1, H, device=device)
+    #     j = torch.linspace(0, 1, W, device=device)
+    #     i_grid, j_grid = torch.meshgrid(i, j, indexing='ij')
+    #     i_grid = i_grid.unsqueeze(0).unsqueeze(0).expand(B,1,H,W)   # [B,1,H,W]
+    #     j_grid = j_grid.unsqueeze(0).unsqueeze(0).expand(B,1,H,W)   # [B,1,H,W]
+
+    #     # ------------------------
+    #     # FIRST CROSS-ATTENTION
+    #     # ------------------------
+    #     # Q1: [B, 9+2, H, W]
+    #     Q1 = torch.cat([HF_star, i_grid, j_grid], dim=1)
+
+    #     # K1: [B,K,9+2,H,W]
+    #     i_k = i_grid.unsqueeze(1).expand(-1,K,-1,-1,-1)     # [B,K,1,H,W]
+    #     j_k = j_grid.unsqueeze(1).expand(-1,K,-1,-1,-1)     # [B,K,1,H,W]
+    #     K1 = torch.cat([HF_cands, i_k, j_k], dim=2)
+
+    #     # V1: [B,K,3,H,W]  (as before)
+    #     V1 = Z_cands
+
+    #     # output z_star: [B, embed_dim, H, W]
+    #     # print('Q1.shape ', Q1.shape)
+    #     # print('K1.shape ', K1.shape)
+    #     # print('V1.shape ', V1.shape)
+    #     z_star = self._cross_attn(Q1, K1, V1, self.q1, self.k1, self.v1, self.attn1)
+    #     # print('z_star.shape: ', z_star.shape)
+
+    #     # ------------------------
+    #     # SECOND CROSS-ATTENTION
+    #     # ------------------------
+    #     z_star_exp = z_star.unsqueeze(1).expand(-1,K,-1,-1,-1)  # [B,K,embed_dim,H,W]
+
+    #     # Q2: [B, 9 + embed_dim + 2, H, W]
+    #     Q2 = torch.cat([HF_star, z_star, i_grid, j_grid], dim=1)
+
+    #     # K2: [B,K,9 + embed_dim + 2, H, W]
+    #     K2 = torch.cat([HF_cands, z_star_exp, i_k, j_k], dim=2)
+
+    #     # V2 stays same as V1: [B,K,3,H,W]
+    #     V2 = Z_cands
+
+    #     # print('Q2.shape ', Q2.shape)
+    #     # print('K2.shape ', K2.shape)
+    #     # print('V2.shape ', V2.shape)
+    #     z_hat = self._cross_attn(Q2, K2, V2, self.q2, self.k2, self.v2, self.attn2)
+
+    #     return z_star, z_hat  # [B, embed_dim, H, W]
 
 
     def save_checkpoint(self, optimizer, epoch, path="refiner_checkpoint.pth"):
