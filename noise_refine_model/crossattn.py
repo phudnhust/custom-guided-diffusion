@@ -97,7 +97,7 @@ class PixelCrossAttentionRefiner(nn.Module):
         
         dummy_value_for_attn = torch.zeros((K,B*N, self.embed_dim), device=Value.device)  # [K, B*N, C] = [5, 2097152, 3]
         _, attention_weights = attn(Query, Key, dummy_value_for_attn)   # [B*N, 1, K] = [2097152, 1, 5]
-        attention_weights = nn.functional.normalize(attention_weights, p=2, dim=-1)
+        # attention_weights = nn.functional.normalize(attention_weights, p=2, dim=-1)
 
         if q_proj.in_features == self.q1.in_features:
             print('q_proj_1.weight: ', q_proj.weight)
@@ -112,6 +112,8 @@ class PixelCrossAttentionRefiner(nn.Module):
 
         out = torch.bmm(attention_weights, Value).squeeze(1)  # [B*N, Cv] = [2097152, 3]
         out = out.reshape(B, H, W, -1).permute(0,3,1,2)
+
+        out = out / out.std()
         # print(f'out: mean {out.mean().item():.4f}, std {out.std().item():.4f}, min {out.min().item():.4f}, max {out.max().item():.4f}')
 
         return out                      # [B, E, H, W]

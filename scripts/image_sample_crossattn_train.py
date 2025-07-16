@@ -164,14 +164,14 @@ def main():
     #         self.save()
 
 
-    n_iterations = 2000
+    n_iterations = 300
     n_save_interval = 50
     for iteration in tqdm(range(n_iterations), desc='Training iterations'):
-        timestep = th.randint(1, 200, (1,)).item()      # [1, 399)
+        timestep = th.randint(1, 400, (1,)).item()      # [1, 399)
         img_batch, _ = next(data)
         img_batch = img_batch.to(dist_util.dev())  # torch.Size([32, 3, 256, 256])
 
-        batch_noise_candidate, batch_hf_info, batch_hf_star, batch_r_t = diffusion.get_5_candidates_for_train(
+        batch_noise_candidate, batch_hf_info, batch_hf_star, batch_r_t, out_sampled_from_x_t = diffusion.get_5_candidates_for_train(
             model,
             shape=(batch_size, 3, args.image_size, args.image_size),
             clip_denoised=args.clip_denoised,
@@ -204,18 +204,38 @@ def main():
 
     
         z_star, z_hat = refine_net(batch_hf_star, batch_hf_info, batch_noise_candidate)  # → [B, 3, H, W]
+        
+        # loss = nn.functional.l1_loss(z_hat, batch_r_t) 
+        # with open('../learning_curve_imagenet_14h42.txt', 'a') as f:
+            # f.write(f'iteration {iteration} loss  {loss}\n')
 
-        # loss = nn.functional.l1_loss(z_hat, batch_r_t) + 1.0 * nn.functional.l1_loss(z_star, batch_r_t)  # ép attention head 1 học một output có ích
-        loss = nn.functional.l1_loss(z_hat, batch_r_t)
+        ###--------- START IMPLEMENTING IMAGE LOSS ---------#
+
+        with th.no_grad():
+            predicted_x_t_minus_1 = out_sampled_from_x_t['mean'] + + th.exp(0.5 * out_sampled_from_x_t['log_variance']) * z_hat
+            predicted_x_0_given_t_minus_1 = diffusion.p_mean_variance(
+                model,
+                predicted_x_t_minus_1,
+                th.tensor([timestep - 1] * 1, device=dist_util.dev()),
+                clip_denoised=args.clip_denoised,
+                denoised_fn=None,
+                model_kwargs=model_kwargs,
+            )['pred_xstart']
+        loss_noise = nn.functional.l1_loss(z_hat, batch_r_t) 
+        loss_image = nn.functional.l1_loss(img_batch, predicted_x_0_given_t_minus_1)
+        loss = loss_noise + loss_image
+
+        with open('../learning_curve_imagenet_14h42.txt', 'a') as f:
+            f.write(f'iteration {iteration} loss noise {loss_noise} loss image {loss_image} loss total {loss}\n')
+            
+        ###--------- END IMPLEMENTING IMAGE LOSS ---------#
+
         optimizer.zero_grad()
         loss.backward()
         optimizer.step()
 
-        with open('../learning_curve_imagenet.txt', 'a') as f:
-            f.write(f'iteration {iteration} loss {loss}\n')
-
         if (iteration % n_save_interval == 0) or iteration == n_iterations-1:
-            refine_net.save_checkpoint(optimizer, iteration, path=repo_folder_path + f'send_more_info_train_imagenet_wavelet_jul_14/refine_net_epoch_{iteration}.pth')
+            refine_net.save_checkpoint(optimizer, iteration, path=repo_folder_path + f'send_more_info_train_imagenet_wavelet_jul_16/refine_net_epoch_{iteration}.pth')
         
         
     dist.barrier()

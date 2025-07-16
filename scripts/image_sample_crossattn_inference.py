@@ -23,7 +23,7 @@ from guided_diffusion.script_util import (
 from matplotlib import pyplot as plt
 from datetime import datetime
 from PIL import Image
-from guided_diffusion.image_util import Transmitter, NewTransmitter, Receiver
+from guided_diffusion.image_util import *
 
 def create_argparser():
     defaults = dict(
@@ -41,7 +41,15 @@ def create_argparser():
 from noise_refine_model.crossattn import PixelCrossAttentionRefiner
 
 def main():
-    # dummy_user_role = Receiver('/mnt/HDD2/phudh/custom-guided-diffusion/compressed_info/compressed_representation_date_20250630_time_1411.json')
+
+    with open('../mean_std_ground_truth_residual.txt', 'w'):
+        pass
+    with open('../mean_std_predict.txt', 'w'):
+        pass
+    with open('../noise_and_ground_truth_residual_l1_loss.txt', 'w'):
+        pass
+
+    # dummy_user_role = DdcmReceiver('/mnt/HDD2/phudh/custom-guided-diffusion/compressed_info/compressed_representation_date_20250630_time_1411.json')
     start_time = time.perf_counter()
     args = create_argparser().parse_args()
 
@@ -98,7 +106,7 @@ def main():
     start_time = time.perf_counter()
     
     #---------------- REFINE NET INITIALIZE -----------------------
-    checkpoint = th.load(repo_folder_path + 'send_more_info_train_imagenet_wavelet_jun_07_timestep_400/refine_net_epoch_1999.pth')
+    checkpoint = th.load(repo_folder_path + 'send_more_info_train_imagenet_wavelet_jul_16_14h42/refine_net_epoch_299.pth')
     refine_net = PixelCrossAttentionRefiner(feat_dim=3, embed_dim=32, num_heads=16).to(dist_util.dev())
     # refine_net = PixelCrossAttentionRefiner(feat_dim=3, embed_dim=3, num_heads=3).to(dist_util.dev())  
 
@@ -122,29 +130,36 @@ def main():
             model_kwargs=model_kwargs,
             codebooks=_codebooks,
 
-            # user_role=Transmitter(),
-            user_role=NewTransmitter(),
+            # user_role=DdcmTransmitter(),
+            # user_role=DdcmRefineTransmitter(),
+            # user_role=CustomTransmitter(),
 
-            # user_role=Receiver('/mnt/HDD2/phu2/custom-guided-diffusion/compressed_info/compressed_representation_date_20250702_time_1327.json'),
+            user_role=IdealReceiver(),
+            # user_role=DdcmReceiver('', refine_net),
+            # user_role=DdcmRefineReceiver('/mnt/HDD2/phu2/custom-guided-diffusion/compressed_info/compressed_indices_date_20250716_time_1541.json',
+            #                              '/mnt/HDD2/phu2/custom-guided-diffusion/compressed_info/compressed_gammas_date_20250716_time_1541.json',
+            #                             #  refine_model=None),
+            #                              refine_model=refine_net),
             # hq_img_path="/mnt/HDD2/phu2/custom-guided-diffusion/hq_img/imagenet-256/academic_gown/000.jpg",
 
-            # user_role=Receiver('/mnt/HDD2/phu2/custom-guided-diffusion/compressed_info/compressed_representation_date_20250702_time_1328.json'),
+            # user_role=DdcmRefineReceiver('/mnt/HDD2/phu2/custom-guided-diffusion/compressed_info/compressed_indices_date_20250716_time_1617.json',
+            #                              '/mnt/HDD2/phu2/custom-guided-diffusion/compressed_info/compressed_gammas_date_20250716_time_1617.json',
+            #                             #  refine_model=None),
+            #                              refine_model=refine_net),
             # hq_img_path="/mnt/HDD2/phu2/custom-guided-diffusion/hq_img/imagenet-256/academic_gown/004.jpg",
 
             # -----------------
-            # user_role=Receiver('/mnt/HDD2/phu2/custom-guided-diffusion/compressed_info/compressed_representation_date_20250702_time_1329.json'),
-            # hq_img_path='/mnt/HDD2/phu2/custom-guided-diffusion/hq_img/CelebDataProcessed/Jennifer Lopez/8.jpg',
+            # user_role=DdcmRefineReceiver('/mnt/HDD2/phu2/custom-guided-diffusion/compressed_info/compressed_indices_date_20250716_time_1708.json',
+            #                              '/mnt/HDD2/phu2/custom-guided-diffusion/compressed_info/compressed_gammas_date_20250716_time_1708.json',
+            #                             #  refine_model=None),
+            #                              refine_model=refine_net),
+            hq_img_path='/mnt/HDD2/phu2/custom-guided-diffusion/hq_img/CelebDataProcessed/Jennifer Lopez/8.jpg',
 
-            # user_role=Receiver('/mnt/HDD2/phu2/custom-guided-diffusion/compressed_info/compressed_representation_date_20250702_time_1332.json'),
-            hq_img_path='/mnt/HDD2/phu2/custom-guided-diffusion/hq_img/CelebDataProcessed/Leonardo DiCaprio/20.jpg',
+            # user_role=DdcmRefineReceiver(''),
+            # hq_img_path='/mnt/HDD2/phu2/custom-guided-diffusion/hq_img/CelebDataProcessed/Leonardo DiCaprio/20.jpg',
 
-            # user_role=Receiver('/mnt/HDD2/phu2/custom-guided-diffusion/compressed_info/compressed_representation_date_20250702_time_0043.json'),
+            # user_role=DdcmRefineReceiver(''),
             # hq_img_path='/mnt/HDD2/phu2/custom-guided-diffusion/hq_img/CelebDataProcessed/Barack Obama/15.jpg',
-
-            # -----------------
-
-            noise_refine_model=refine_net,
-            # noise_refine_model=None
 
         )
 

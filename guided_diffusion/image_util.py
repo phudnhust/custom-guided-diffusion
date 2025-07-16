@@ -118,22 +118,54 @@ def save_tensor_as_img(dummy_tensor, path):
     dummy_tensor = Image.fromarray(dummy_tensor[0])
     dummy_tensor.save(path)
 
-class Transmitter:
+#----------------------------------------------------
+#-------------DEFINE USER ROLE-----------------------
+#----------------------------------------------------
+
+class DdcmTransmitter:
     def __init__(self):
         pass
 
-class NewTransmitter:
+class DdcmRefineTransmitter:
+    def __init__(self):
+        pass
+
+class CustomTransmitter:
     def __init__(self):
         """
-            At every timestep, using residual as the forward information to the next timestep,
-            and send 5 indices whose span best represents the residual.
+            At every timestep, using residual as the forward information to the next timestep, and send 5 indices whose span best represents the residual.
         """
         pass
 
-class Receiver:
-    def __init__(self, compressed_info_path):
+
+
+class IdealReceiver:
+    def __init__(self):
+        pass
+
+class DdcmReceiver:
+    def __init__(self, compressed_info_path, refine_model=None):
+        self.refine_model = refine_model
+
         self.compressed_info_path = compressed_info_path
         with open(compressed_info_path, 'r') as f:
             data = json.load(f)
         self.indices_dict = {int(k): v for k, v in data.items()}
         print('indices_dict: ', self.indices_dict)  # Output: {1: [1, 2], 2: [1, 2, 6]}
+
+class DdcmRefineReceiver:
+    def __init__(self, indices_path, gammas_path, refine_model=None):
+        self.refine_model = refine_model
+
+        self.indices_path = indices_path
+        with open(indices_path, 'r') as f:
+            data = json.load(f)
+        self.indices_dict = {int(k): v for k, v in data.items()}
+        print('indices_dict: ', self.indices_dict)  # Output: {1: [1, 2], 2: [1, 2, 6]}
+
+        self.gammas_path = gammas_path
+        with open(gammas_path, 'r') as f:
+            data = json.load(f)
+        self.gammas_dict = {int(k): v for k, v in data.items()}
+        print('indices_dict: ', self.gammas_dict)  # Output: {1: [1, 2], 2: [1, 2, 6]}
+
