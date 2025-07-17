@@ -42,6 +42,7 @@ def create_argparser():
 
 from PIL import Image
 from noise_refine_model.crossattn import PixelCrossAttentionRefiner, AlexNetPerceptualLoss
+from noise_refine_model.crossattn_global import GlobalCrossAttentionRefiner
 import torch.nn as nn
 import torch.optim as optim 
 
@@ -110,7 +111,7 @@ def main():
         model_kwargs["y"] = classes
     
     #---------------- REFINE NET INITIALIZE -----------------------
-    refine_net = PixelCrossAttentionRefiner(feat_dim=3, embed_dim=32, num_heads=16).to(dist_util.dev())
+    refine_net = GlobalCrossAttentionRefiner(feat_dim=3, band_dim=3, embed_dim=32, num_heads=8).to(dist_util.dev())
     criterion = nn.L1Loss()
     optimizer = optim.Adam(
         refine_net.parameters(), 
@@ -205,13 +206,13 @@ def main():
     
         z_star, z_hat = refine_net(batch_hf_star, batch_hf_info, batch_noise_candidate)  # → [B, 3, H, W]
         
-        # loss = nn.functional.l1_loss(z_hat, batch_r_t) 
-        # with open('../learning_curve_imagenet_01h13.txt', 'a') as f:
-            # f.write(f'iteration {iteration} loss  {loss}\n')
+        loss = nn.functional.l1_loss(z_hat, batch_r_t) 
+        with open('../learning_curve_imagenet_10h20.txt', 'a') as f:
+            f.write(f'iteration {iteration} loss  {loss}\n')
 
         ###--------- START IMPLEMENTING IMAGE LOSS ---------#
 
-        predicted_x_t_minus_1 = out_sampled_from_x_t['mean'] + + th.exp(0.5 * out_sampled_from_x_t['log_variance']) * z_hat
+        # predicted_x_t_minus_1 = out_sampled_from_x_t['mean'] + + th.exp(0.5 * out_sampled_from_x_t['log_variance']) * z_hat
 
 
         ## with th.no_grad():
@@ -227,16 +228,16 @@ def main():
         ## Dùng công thức đóng, xấp xỉ epsilon_predict = z_hat luôn
         ## vì nếu push lại vào model diffusion lần nữa thì không đủ bộ nhớ (ko thể dùng with th.no_grad() vì như thế sẽ hủy hết grad của z_hat)
 
-        predicted_x_0_given_t_minus_1 = diffusion._predict_xstart_from_eps(x_t=predicted_x_t_minus_1, 
-                                                                           t=th.tensor([timestep - 1] * batch_size, device=dist_util.dev()), 
-                                                                           eps=z_hat
-        ).clamp(-1, 1)
-        loss_noise = nn.functional.l1_loss(z_hat, batch_r_t) 
-        loss_image = nn.functional.l1_loss(img_batch, predicted_x_0_given_t_minus_1)
-        loss = nn.functional.l1_loss(z_hat, batch_r_t) + nn.functional.l1_loss(img_batch, predicted_x_0_given_t_minus_1) * 0.5
+        # predicted_x_0_given_t_minus_1 = diffusion._predict_xstart_from_eps(x_t=predicted_x_t_minus_1, 
+        #                                                                    t=th.tensor([timestep - 1] * batch_size, device=dist_util.dev()), 
+        #                                                                    eps=z_hat
+        # ).clamp(-1, 1)
+        # loss_noise = nn.functional.l1_loss(z_hat, batch_r_t) 
+        # loss_image = nn.functional.l1_loss(img_batch, predicted_x_0_given_t_minus_1)
+        # loss = nn.functional.l1_loss(z_hat, batch_r_t) + nn.functional.l1_loss(img_batch, predicted_x_0_given_t_minus_1) * 0.5
 
-        with open('../learning_curve_imagenet_09h56.txt', 'a') as f:
-            f.write(f'iteration {iteration} loss noise {loss_noise} loss image {loss_image} loss total {loss}\n')
+        # with open('../learning_curve_imagenet_09h56.txt', 'a') as f:
+        #     f.write(f'iteration {iteration} loss noise {loss_noise} loss image {loss_image} loss total {loss}\n')
             
         ###--------- END IMPLEMENTING IMAGE LOSS ---------#
 
@@ -245,7 +246,7 @@ def main():
         optimizer.step()
 
         if (iteration % n_save_interval == 0) or iteration == n_iterations-1:
-            refine_net.save_checkpoint(optimizer, iteration, path=repo_folder_path + f'send_more_info_train_imagenet_wavelet_jul_17_09h56/refine_net_epoch_{iteration}.pth')
+            refine_net.save_checkpoint(optimizer, iteration, path=repo_folder_path + f'send_more_info_train_imagenet_wavelet_jul_17_10h20/refine_net_epoch_{iteration}.pth')
         
         
     dist.barrier()
