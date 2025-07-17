@@ -315,6 +315,7 @@ class GaussianDiffusion:  # initialize in function create_model_and_diffusion
             if self.model_mean_type == ModelMeanType.START_X:
                 pred_xstart = process_xstart(model_output)
             else:
+                # print('hehehehe')
                 pred_xstart = process_xstart(
                     self._predict_xstart_from_eps(x_t=x, t=t, eps=model_output)
                 )

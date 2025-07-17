@@ -75,7 +75,7 @@ def main():
     all_labels = []
 
     # repo_folder_path = "/mnt/HDD2/phudoan/my_stuff/custom-guided-diffusion/"  # (server 147)
-    repo_folder_path = "/mnt/HDD2/phudh/custom-guided-diffusion/"    # (server 118 or 92)
+    repo_folder_path = "/mnt/HDD2/phudoan/custom-guided-diffusion/"    # (server 118 or 92)
     
     # Generate codebook
     start_time = time.perf_counter()
@@ -125,7 +125,7 @@ def main():
 
     # load data
     batch_size = 1
-    hq_img_folder = '/mnt/HDD2/phudh/custom-guided-diffusion/hq_img/CelebDataProcessed/Barack Obama'
+    hq_img_folder = '/mnt/HDD2/phudoan/custom-guided-diffusion/hq_img/CelebDataProcessed/Barack Obama'
     all_hq_img = [os.path.join(hq_img_folder, f) for f in os.listdir(hq_img_folder) if os.path.isfile(os.path.join(hq_img_folder, f))]
     # random.shuffle(all_hq_img)  # Shuffle to ensure randomness before slicing
     hq_img_subset = all_hq_img[:int(0.7 * len(all_hq_img))]

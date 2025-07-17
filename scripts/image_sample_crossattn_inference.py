@@ -79,8 +79,8 @@ def main():
     all_images = []
     all_labels = []
 
-    # repo_folder_path = "/mnt/HDD2/phudoan/my_stuff/custom-guided-diffusion/"  # (server 147)
-    repo_folder_path = "/mnt/HDD2/phu2/custom-guided-diffusion/"  # (server 148)
+    repo_folder_path = "/mnt/HDD2/phudoan/custom-guided-diffusion/"  # (server 147)
+    # repo_folder_path = "/mnt/HDD2/phu2/custom-guided-diffusion/"  # (server 148)
     # repo_folder_path = "/mnt/HDD2/phudh/custom-guided-diffusion/"    # (server 118 or 92)
     
     # Generate codebook
@@ -106,11 +106,11 @@ def main():
     start_time = time.perf_counter()
     
     #---------------- REFINE NET INITIALIZE -----------------------
-    checkpoint = th.load(repo_folder_path + 'send_more_info_train_imagenet_wavelet_jul_16_14h42/refine_net_epoch_299.pth')
+    # checkpoint = th.load(repo_folder_path + 'send_more_info_train_imagenet_wavelet_jul_16_14h42/refine_net_epoch_299.pth')
     refine_net = PixelCrossAttentionRefiner(feat_dim=3, embed_dim=32, num_heads=16).to(dist_util.dev())
     # refine_net = PixelCrossAttentionRefiner(feat_dim=3, embed_dim=3, num_heads=3).to(dist_util.dev())  
 
-    refine_net.load_state_dict(checkpoint['model_state_dict'])
+    # refine_net.load_state_dict(checkpoint['model_state_dict'])
 
     while len(all_images) * args.batch_size < args.num_samples:
         model_kwargs = {}
@@ -140,26 +140,26 @@ def main():
             #                              '/mnt/HDD2/phu2/custom-guided-diffusion/compressed_info/compressed_gammas_date_20250716_time_1541.json',
             #                             #  refine_model=None),
             #                              refine_model=refine_net),
-            # hq_img_path="/mnt/HDD2/phu2/custom-guided-diffusion/hq_img/imagenet-256/academic_gown/000.jpg",
+            # hq_img_path="/mnt/HDD2/phudoan/custom-guided-diffusion/hq_img/imagenet-256/academic_gown/000.jpg",
 
             # user_role=DdcmRefineReceiver('/mnt/HDD2/phu2/custom-guided-diffusion/compressed_info/compressed_indices_date_20250716_time_1617.json',
             #                              '/mnt/HDD2/phu2/custom-guided-diffusion/compressed_info/compressed_gammas_date_20250716_time_1617.json',
             #                             #  refine_model=None),
             #                              refine_model=refine_net),
-            # hq_img_path="/mnt/HDD2/phu2/custom-guided-diffusion/hq_img/imagenet-256/academic_gown/004.jpg",
+            # hq_img_path="/mnt/HDD2/phudoan/custom-guided-diffusion/hq_img/imagenet-256/academic_gown/004.jpg",
 
             # -----------------
             # user_role=DdcmRefineReceiver('/mnt/HDD2/phu2/custom-guided-diffusion/compressed_info/compressed_indices_date_20250716_time_1708.json',
             #                              '/mnt/HDD2/phu2/custom-guided-diffusion/compressed_info/compressed_gammas_date_20250716_time_1708.json',
             #                             #  refine_model=None),
             #                              refine_model=refine_net),
-            hq_img_path='/mnt/HDD2/phu2/custom-guided-diffusion/hq_img/CelebDataProcessed/Jennifer Lopez/8.jpg',
+            hq_img_path='/mnt/HDD2/phudoan/custom-guided-diffusion/hq_img/CelebDataProcessed/Jennifer Lopez/8.jpg',
 
             # user_role=DdcmRefineReceiver(''),
-            # hq_img_path='/mnt/HDD2/phu2/custom-guided-diffusion/hq_img/CelebDataProcessed/Leonardo DiCaprio/20.jpg',
+            # hq_img_path='/mnt/HDD2/phudoan/custom-guided-diffusion/hq_img/CelebDataProcessed/Leonardo DiCaprio/20.jpg',
 
             # user_role=DdcmRefineReceiver(''),
-            # hq_img_path='/mnt/HDD2/phu2/custom-guided-diffusion/hq_img/CelebDataProcessed/Barack Obama/15.jpg',
+            # hq_img_path='/mnt/HDD2/phudoan/custom-guided-diffusion/hq_img/CelebDataProcessed/Barack Obama/15.jpg',
 
         )
 

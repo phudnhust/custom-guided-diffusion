@@ -76,8 +76,8 @@ def main():
     all_images = []
     all_labels = []
 
-    # repo_folder_path = "/mnt/HDD2/phudoan/my_stuff/custom-guided-diffusion/"  # (server 147)
-    repo_folder_path = "/mnt/HDD2/phu2/custom-guided-diffusion/"  # (server 148)
+    repo_folder_path = "/mnt/HDD2/phudoan/custom-guided-diffusion/"  # (server 147)
+    # repo_folder_path = "/mnt/HDD2/phu2/custom-guided-diffusion/"  # (server 148)
     # repo_folder_path = "/mnt/HDD2/phudh/custom-guided-diffusion/"    # (server 118 or 92)
     
     # Generate codebook
@@ -131,7 +131,7 @@ def main():
     # load data
     batch_size = 32
     data = load_data(
-        data_dir='/mnt/HDD2/phu2/custom-guided-diffusion/imagenet1k256',
+        data_dir='/mnt/HDD2/phudoan/custom-guided-diffusion/imagenet1k256/',
         batch_size=batch_size,
         image_size=256,
         class_cond=False,
@@ -164,7 +164,7 @@ def main():
     #         self.save()
 
 
-    n_iterations = 300
+    n_iterations = 500
     n_save_interval = 50
     for iteration in tqdm(range(n_iterations), desc='Training iterations'):
         timestep = th.randint(1, 400, (1,)).item()      # [1, 399)
@@ -206,26 +206,36 @@ def main():
         z_star, z_hat = refine_net(batch_hf_star, batch_hf_info, batch_noise_candidate)  # → [B, 3, H, W]
         
         # loss = nn.functional.l1_loss(z_hat, batch_r_t) 
-        # with open('../learning_curve_imagenet_14h42.txt', 'a') as f:
+        # with open('../learning_curve_imagenet_01h13.txt', 'a') as f:
             # f.write(f'iteration {iteration} loss  {loss}\n')
 
         ###--------- START IMPLEMENTING IMAGE LOSS ---------#
 
-        with th.no_grad():
-            predicted_x_t_minus_1 = out_sampled_from_x_t['mean'] + + th.exp(0.5 * out_sampled_from_x_t['log_variance']) * z_hat
-            predicted_x_0_given_t_minus_1 = diffusion.p_mean_variance(
-                model,
-                predicted_x_t_minus_1,
-                th.tensor([timestep - 1] * 1, device=dist_util.dev()),
-                clip_denoised=args.clip_denoised,
-                denoised_fn=None,
-                model_kwargs=model_kwargs,
-            )['pred_xstart']
+        predicted_x_t_minus_1 = out_sampled_from_x_t['mean'] + + th.exp(0.5 * out_sampled_from_x_t['log_variance']) * z_hat
+
+
+        ## with th.no_grad():
+        ##     predicted_x_0_given_t_minus_1 = diffusion.p_mean_variance(
+        ##         model.eval(),
+        ##         predicted_x_t_minus_1,
+        ##         th.tensor([timestep - 1] * batch_size, device=dist_util.dev()),
+        ##         clip_denoised=args.clip_denoised,
+        ##         denoised_fn=None,
+        ##         model_kwargs=model_kwargs,
+        ##     )['pred_xstart']
+
+        ## Dùng công thức đóng, xấp xỉ epsilon_predict = z_hat luôn
+        ## vì nếu push lại vào model diffusion lần nữa thì không đủ bộ nhớ (ko thể dùng with th.no_grad() vì như thế sẽ hủy hết grad của z_hat)
+
+        predicted_x_0_given_t_minus_1 = diffusion._predict_xstart_from_eps(x_t=predicted_x_t_minus_1, 
+                                                                           t=th.tensor([timestep - 1] * batch_size, device=dist_util.dev()), 
+                                                                           eps=z_hat
+        ).clamp(-1, 1)
         loss_noise = nn.functional.l1_loss(z_hat, batch_r_t) 
         loss_image = nn.functional.l1_loss(img_batch, predicted_x_0_given_t_minus_1)
-        loss = loss_noise + loss_image
+        loss = nn.functional.l1_loss(z_hat, batch_r_t) + nn.functional.l1_loss(img_batch, predicted_x_0_given_t_minus_1) * 0.5
 
-        with open('../learning_curve_imagenet_14h42.txt', 'a') as f:
+        with open('../learning_curve_imagenet_09h56.txt', 'a') as f:
             f.write(f'iteration {iteration} loss noise {loss_noise} loss image {loss_image} loss total {loss}\n')
             
         ###--------- END IMPLEMENTING IMAGE LOSS ---------#
@@ -235,7 +245,7 @@ def main():
         optimizer.step()
 
         if (iteration % n_save_interval == 0) or iteration == n_iterations-1:
-            refine_net.save_checkpoint(optimizer, iteration, path=repo_folder_path + f'send_more_info_train_imagenet_wavelet_jul_16/refine_net_epoch_{iteration}.pth')
+            refine_net.save_checkpoint(optimizer, iteration, path=repo_folder_path + f'send_more_info_train_imagenet_wavelet_jul_17_09h56/refine_net_epoch_{iteration}.pth')
         
         
     dist.barrier()
