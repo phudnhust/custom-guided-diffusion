@@ -134,13 +134,13 @@ def main():
             # user_role=DdcmRefineTransmitter(),
             # user_role=CustomTransmitter(),
 
-            user_role=IdealReceiver(),
+            # user_role=IdealReceiver(),
             # user_role=DdcmReceiver('', refine_net),
-            # user_role=DdcmRefineReceiver('/mnt/HDD2/phu2/custom-guided-diffusion/compressed_info/compressed_indices_date_20250716_time_1541.json',
-            #                              '/mnt/HDD2/phu2/custom-guided-diffusion/compressed_info/compressed_gammas_date_20250716_time_1541.json',
-            #                             #  refine_model=None),
-            #                              refine_model=refine_net),
-            # hq_img_path="/mnt/HDD2/phudoan/custom-guided-diffusion/hq_img/imagenet-256/academic_gown/000.jpg",
+            user_role=DdcmRefineReceiver('/mnt/HDD2/phudoan/custom-guided-diffusion/compressed_info/compressed_indices_date_20250719_time_1358.json',
+                                         '/mnt/HDD2/phudoan/custom-guided-diffusion/compressed_info/compressed_gammas_date_20250719_time_1358.json',
+                                        #  refine_model=None),
+                                         refine_model=refine_net),
+            hq_img_path="/mnt/HDD2/phudoan/custom-guided-diffusion/hq_img/imagenet-256/academic_gown/000.jpg",
 
             # user_role=DdcmRefineReceiver('/mnt/HDD2/phu2/custom-guided-diffusion/compressed_info/compressed_indices_date_20250716_time_1617.json',
             #                              '/mnt/HDD2/phu2/custom-guided-diffusion/compressed_info/compressed_gammas_date_20250716_time_1617.json',
@@ -153,7 +153,7 @@ def main():
             #                              '/mnt/HDD2/phu2/custom-guided-diffusion/compressed_info/compressed_gammas_date_20250716_time_1708.json',
             #                             #  refine_model=None),
             #                              refine_model=refine_net),
-            hq_img_path='/mnt/HDD2/phudoan/custom-guided-diffusion/hq_img/CelebDataProcessed/Jennifer Lopez/8.jpg',
+            # hq_img_path='/mnt/HDD2/phudoan/custom-guided-diffusion/hq_img/CelebDataProcessed/Jennifer Lopez/8.jpg',
 
             # user_role=DdcmRefineReceiver(''),
             # hq_img_path='/mnt/HDD2/phudoan/custom-guided-diffusion/hq_img/CelebDataProcessed/Leonardo DiCaprio/20.jpg',
